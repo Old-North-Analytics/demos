@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Old North Analytics | Rent Management Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#EAF6F2;color:#1a1a1a;display:flex;min-height:100vh}
+:root{--dark:#22493D;--primary:#537C6F;--light:#EAF6F2;--white:#fff;--border:#d0e8e0;--red:#c0392b;--amber:#d97706;--green:#16a34a;--gray:#64748b}
+
+#sidebar{width:220px;min-width:220px;background:var(--dark);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
+#sidebar .brand{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1);font-weight:700;font-size:14px;line-height:1.4}
+#sidebar .brand span{font-weight:300;opacity:.7;font-size:12px;display:block;margin-top:2px}
+#sidebar nav{flex:1;padding:8px 0}
+#sidebar nav a{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:rgba(255,255,255,0.8);text-decoration:none;cursor:pointer;transition:background .15s}
+#sidebar nav a:hover{background:rgba(255,255,255,.08)}
+#sidebar nav a.active{background:var(--primary);color:#fff;font-weight:600}
+#sidebar nav a .icon{width:16px;text-align:center;font-size:14px}
+
+#main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+#topbar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+#topbar h1{font-size:17px;font-weight:600;color:var(--dark)}
+#topbar .topbar-actions{display:flex;gap:8px;align-items:center}
+#content{padding:24px 28px;flex:1}
+
+.unsaved-badge{background:#d97706;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;display:none}
+.unsaved-badge.visible{display:inline-block}
+
+.banner{padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:13px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.banner.warn{background:#fef3c7;border:1px solid #f59e0b;color:#92400e}
+.banner.danger{background:#fee2e2;border:1px solid #ef4444;color:#7f1d1d}
+.banner.info{background:#dbeafe;border:1px solid #3b82f6;color:#1e3a8a}
+.banner.success{background:#dcfce7;border:1px solid #22c55e;color:#14532d}
+.banner button{background:none;border:1px solid currentColor;cursor:pointer;font-weight:600;font-size:12px;padding:3px 8px;border-radius:4px;white-space:nowrap}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+.kpi-tile{background:var(--white);border-radius:8px;padding:16px;border:1px solid var(--border);position:relative}
+.kpi-tile .label{font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px;padding-right:20px}
+.kpi-tile .value{font-size:22px;font-weight:700;color:var(--dark)}
+.kpi-tile .sub{font-size:11px;color:var(--gray);margin-top:3px}
+.kpi-tile .tip{position:absolute;top:12px;right:12px;width:16px;height:16px;background:#e2e8f0;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:help;color:var(--gray);flex-shrink:0}
+.kpi-tile .tip:hover::after{content:attr(data-tip);position:absolute;right:0;top:20px;background:#1a1a1a;color:#fff;padding:6px 10px;border-radius:4px;font-size:11px;width:200px;z-index:200;white-space:normal;line-height:1.4}
+
+.ttip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;background:#e2e8f0;border-radius:50%;font-size:9px;cursor:help;color:var(--gray);margin-left:4px;flex-shrink:0;vertical-align:middle}
+.ttip:hover::after{content:attr(data-tip);position:absolute;background:#1a1a1a;color:#fff;padding:6px 10px;border-radius:4px;font-size:11px;width:220px;z-index:200;white-space:normal;line-height:1.5;margin-top:4px}
+
+.table-wrap{background:var(--white);border-radius:8px;border:1px solid var(--border);overflow:hidden}
+.table-wrap table{width:100%;border-collapse:collapse}
+.table-wrap table thead th{background:#f8faf9;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)}
+.table-wrap table tbody tr{border-bottom:1px solid #f0f4f2}
+.table-wrap table tbody tr:last-child{border-bottom:none}
+.table-wrap table tbody td{padding:10px 14px;font-size:13px}
+.table-wrap table tbody tr:hover{background:#f8faf9}
+.table-wrap table tfoot td{padding:10px 14px;font-size:13px;border-top:2px solid var(--border);background:#f8faf9}
+.clickable{color:var(--primary);cursor:pointer;font-weight:500}
+.clickable:hover{text-decoration:underline}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge.active{background:#dcfce7;color:#15803d}
+.badge.inactive{background:#f1f5f9;color:#475569}
+.badge.ended{background:#f1f5f9;color:#475569}
+.badge.former{background:#f1f5f9;color:#475569}
+.badge.evicted{background:#fee2e2;color:#991b1b}
+.badge.sold{background:#fef3c7;color:#92400e}
+.badge.pending{background:#dbeafe;color:#1d4ed8}
+.badge.monthtomonth{background:#ede9fe;color:#6d28d9}
+.badge.applicant{background:#fef9c3;color:#854d0e}
+
+.form-grid{display:grid;gap:14px}
+.form-row{display:grid;gap:14px}
+.form-row.cols-2{grid-template-columns:1fr 1fr}
+.form-row.cols-3{grid-template-columns:1fr 1fr 1fr}
+.form-row.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field label{display:flex;align-items:center;font-size:12px;font-weight:600;color:var(--dark);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:13px;background:var(--white);color:#1a1a1a}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(83,124,111,.15)}
+.field textarea{resize:vertical;min-height:70px}
+.field .hint{font-size:11px;color:var(--gray);margin-top:3px}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:5px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--dark)}
+.btn-dark{background:var(--dark);color:#fff}
+.btn-dark:hover{background:#1a3530}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--dark)}
+.btn-outline:hover{background:#f8faf9}
+.btn-danger{background:#ef4444;color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-amber{background:#d97706;color:#fff}
+.btn-amber:hover{background:#b45309}
+.btn-green{background:#16a34a;color:#fff}
+.btn-green:hover{background:#15803d}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-header h2{font-size:15px;font-weight:600;color:var(--dark)}
+.section-header .actions{display:flex;gap:8px;align-items:center}
+
+.panel{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.panel h3{font-size:14px;font-weight:600;color:var(--dark);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center}
+#modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:10px;padding:24px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;position:relative}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:16px;color:var(--dark)}
+.modal .close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--gray)}
+.modal-footer{margin-top:20px;display:flex;gap:8px;justify-content:flex-end}
+
+.confirm-area{background:#f8faf9;border:1px solid var(--border);border-radius:6px;padding:14px;margin-top:14px}
+.confirm-area .total-line{font-size:15px;font-weight:700;color:var(--dark);margin-top:8px}
+
+.table-scroll{overflow-x:auto}
+.filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar select,.filter-bar input{padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:13px;background:var(--white)}
+
+.detail-panel{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:20px}
+.detail-panel .back-btn{font-size:12px;color:var(--primary);cursor:pointer;margin-bottom:14px;display:inline-flex;align-items:center;gap:4px}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:16px}
+.info-item label{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;display:block;margin-bottom:2px}
+.info-item span{font-size:13px;color:#1a1a1a}
+
+.toggle-group{display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.toggle-group button{padding:6px 14px;font-size:12px;border:none;background:#fff;cursor:pointer;font-family:inherit;color:var(--gray)}
+.toggle-group button.active{background:var(--primary);color:#fff;font-weight:600}
+
+.txn-charge{color:#c0392b;font-weight:500}
+.txn-payment{color:#16a34a;font-weight:500}
+.txn-deposit{color:#2563eb;font-weight:500}
+.txn-late-fee{color:#d97706;font-weight:500}
+.txn-correction{color:#7c3aed;font-weight:500}
+.txn-waiver{color:#0891b2;font-weight:500}
+
+.bal-owed{color:var(--red);font-weight:600}
+.bal-credit{color:var(--green);font-weight:600}
+.bal-zero{color:var(--gray)}
+
+.tag{background:#e2e8f0;color:#475569;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:500}
+.tag.green{background:#dcfce7;color:#15803d}
+.tag.red{background:#fee2e2;color:#991b1b}
+.tag.amber{background:#fef3c7;color:#92400e}
+
+.late-fee-item{background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.late-fee-item .lf-name{flex:1;font-weight:500;font-size:13px}
+.late-fee-item .lf-amount{font-weight:700;color:#92400e}
+
+.export-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+
+.sortable-th{cursor:pointer;user-select:none}
+.sortable-th:hover{background:#edf4f1}
+.sortable-th::after{content:' ↕';opacity:.35;font-size:10px}
+.sortable-th[data-sorted='asc']::after{content:' ↑';opacity:1}
+.sortable-th[data-sorted='desc']::after{content:' ↓';opacity:1}
+
+#toast{position:fixed;bottom:24px;right:24px;background:#22493D;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:1000;display:none;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+/* Filter bar */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.filter-bar input{padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;width:260px;outline:none}
+.filter-bar input:focus{border-color:var(--primary)}
+.filter-count{font-size:12px;color:var(--gray)}
+
+/* Report in-app view */
+.report-view{margin-top:18px;border:2px solid var(--primary);border-radius:8px;overflow:hidden}
+.report-view-header{background:var(--primary);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.report-view-header h4{margin:0;font-size:14px;font-weight:600;letter-spacing:.3px}
+.report-view-header span{font-size:12px;opacity:.8}
+.report-view .table-wrap{margin:0;border-radius:0}
+.report-view table{border-radius:0}
+.report-summary-row{display:flex;gap:24px;padding:10px 16px;background:#eaf6f2;font-size:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.report-summary-row b{color:var(--dark)}
+.aging-bucket{padding:10px 16px;border-bottom:1px solid var(--border);background:#fff}
+.aging-bucket h5{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px}
+
+/* Printable tenant statement */
+#print-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
+#print-overlay.open{display:flex}
+#print-modal{background:#fff;width:100%;max-width:720px;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+#print-modal-header{background:var(--dark);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+#print-modal-header h3{margin:0;font-size:15px}
+#print-modal-body{padding:24px}
+.stmt-header{display:flex;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.stmt-header .stmt-co{font-size:15px;font-weight:700;color:var(--dark)}
+.stmt-header .stmt-meta{font-size:12px;color:var(--gray);text-align:right;line-height:1.7}
+.stmt-tenant-box{background:#eaf6f2;border-left:4px solid var(--primary);padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:18px}
+.stmt-tenant-box p{margin:0;font-size:13px;line-height:1.6}
+.stmt-tenant-box .stmt-name{font-size:15px;font-weight:700;color:var(--dark);margin-bottom:2px}
+.stmt-balance{display:flex;gap:20px;margin-bottom:18px;flex-wrap:wrap}
+.stmt-balance .bal-box{flex:1;min-width:130px;border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center}
+.stmt-balance .bal-box .bal-label{font-size:11px;color:var(--gray);margin-bottom:2px}
+.stmt-balance .bal-box .bal-val{font-size:18px;font-weight:700}
+.stmt-balance .bal-box.owed .bal-val{color:#991b1b}
+.stmt-balance .bal-box.credit .bal-val{color:#15803d}
+.stmt-table{width:100%;border-collapse:collapse;font-size:12px}
+.stmt-table th{background:#f1f5f9;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:7px 10px;border:1px solid #e2e8f0;text-align:left}
+.stmt-table td{padding:7px 10px;border:1px solid #e2e8f0}
+.stmt-table tr:nth-child(even) td{background:#fafafa}
+.stmt-footer{margin-top:16px;font-size:11px;color:var(--gray);text-align:center;border-top:1px solid var(--border);padding-top:12px}
+
+@media print {
+  body > *:not(#print-overlay){display:none!important}
+  #print-overlay{display:block!important;position:static!important;background:none!important;padding:0!important}
+  #print-modal{box-shadow:none!important;border-radius:0!important;max-width:100%!important}
+  #print-modal-header{background:#22493D!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .no-print{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="brand">Old North Analytics<span>Rent Management Demo</span></div>
+  <nav id="nav">
+    <a onclick="nav('dashboard')" class="active" data-page="dashboard"><span class="icon">&#9632;</span> Dashboard</a>
+    <a onclick="nav('charges')" data-page="charges"><span class="icon">&#8853;</span> Monthly Charges</a>
+    <a onclick="nav('payments')" data-page="payments"><span class="icon">&#8594;</span> Payments</a>
+    <a onclick="nav('deposits')" data-page="deposits"><span class="icon">&#127968;</span> Deposits</a>
+    <a onclick="nav('ledger')" data-page="ledger"><span class="icon">&#9741;</span> Ledger</a>
+    <a onclick="nav('tenants')" data-page="tenants"><span class="icon">&#9786;</span> Tenants</a>
+    <a onclick="nav('properties')" data-page="properties"><span class="icon">&#8962;</span> Properties</a>
+    <a onclick="nav('leases')" data-page="leases"><span class="icon">&#128196;</span> Leases</a>
+    <a onclick="nav('maintenance')" data-page="maintenance"><span class="icon">&#9874;</span> Maintenance</a>
+    <a onclick="nav('reports')" data-page="reports"><span class="icon">&#9998;</span> Reports</a>
+  </nav>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <div class="topbar-actions">
+      <button id="undo-btn" class="btn btn-outline btn-sm" onclick="undoAction()" style="display:none" title="Undo last action">&#8630; Undo (<span id="undo-count">0</span>)</button>
+      <button class="btn btn-outline btn-sm" onclick="openInstructions()" style="border-color:var(--primary);color:var(--primary);font-weight:600">? Instructions</button>
+      <button class="btn btn-outline btn-sm" onclick="loadSampleData()" title="Load fictional demo data for Triangle Area properties" style="background:#537C6F;color:#fff;border-color:#537C6F">&#9654; Load Sample Data</button>
+    </div>
+  </div>
+  <div id="content"></div>
+</div>
+
+<div id="modal-overlay">
+  <div class="modal" id="modal-box">
+    <button class="close" onclick="closeModal()">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Printable Tenant Statement Overlay -->
+<div id="print-overlay">
+  <div id="print-modal">
+    <div id="print-modal-header">
+      <h3>Tenant Statement</h3>
+      <div class="no-print" style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" style="border-color:rgba(255,255,255,.4);color:#fff" onclick="window.print()">&#128438; Print / Save PDF</button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:none" onclick="closePrintStatement()">&#10005; Close</button>
+      </div>
+    </div>
+    <div id="print-modal-body"></div>
+  </div>
+</div>
+
+
+<script>
+// ============================================================
+// DATA LAYER
+// ============================================================
+const LS_KEY = 'ona_demo_rent_v2';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || defaultData(); }
+  catch(e) { return defaultData(); }
+}
+function saveData(d) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(d));
+  } catch(e) {
+    toast('Storage full - please export a backup and clear old data.', true);
+  }
+}
+function defaultData() {
+  return {
+    properties: [], tenants: [], leases: [], ledger: [],
+    deposits: [], maintenance: [],
+    settings: {
+      maintenanceTypes: ['HVAC','Plumbing','Electrical','Appliance Repair','Pest Control','Landscaping','Painting','Flooring','Roof','Other'],
+      exceptionTypes: ['Full Waiver','Partial Waiver','Skip'],
+      paymentTypes: ['Cash','Check','Money Order','Other'],
+      receivedBy: ['Owner','Manager','Office'],
+      lastRefImport: null
+    },
+    meta: { lastTxnId: 0, lastBackupDate: null, unsavedActions: 0, lastDepId: 0, lastMaintId: 0 }
+  };
+}
+
+let appData = loadData();
+if (!appData.meta) appData.meta = { lastTxnId: 0, lastBackupDate: null, unsavedActions: 0, lastDepId: 0, lastMaintId: 0 };
+if (appData.meta.unsavedActions === undefined) appData.meta.unsavedActions = 0;
+if (appData.meta.lastDepId === undefined) appData.meta.lastDepId = 0;
+if (appData.meta.lastMaintId === undefined) appData.meta.lastMaintId = appData.maintenance ? appData.maintenance.length : 0;
+
+function nextTxnId() {
+  appData.meta.lastTxnId = (appData.meta.lastTxnId || 0) + 1;
+  return 'TXN-' + String(appData.meta.lastTxnId).padStart(5,'0');
+}
+
+function nextDepId() {
+  appData.meta.lastDepId = (appData.meta.lastDepId || 0) + 1;
+  return 'DEP-' + String(appData.meta.lastDepId).padStart(4,'0');
+}
+function nextMaintId() {
+  appData.meta.lastMaintId = (appData.meta.lastMaintId || 0) + 1;
+  return 'MAINT-' + String(appData.meta.lastMaintId).padStart(4,'0');
+}
+
+// ============================================================
+// UNDO STACK (5-level demo cap)
+// ============================================================
+const UNDO_MAX = 5;
+let undoStack = []; // array of {snapshot, label}
+
+function pushUndo(label) {
+  // Deep-clone current appData into the stack
+  undoStack.push({ snapshot: JSON.parse(JSON.stringify(appData)), label: label || 'Action' });
+  if (undoStack.length > UNDO_MAX) undoStack.shift(); // drop oldest if over limit
+  updateUndoBtn();
+}
+
+function undoAction() {
+  if (undoStack.length === 0) { toast('Nothing to undo.', true); return; }
+  const entry = undoStack.pop();
+  appData = entry.snapshot;
+  saveData(appData);
+  updateUndoBtn();
+  updateUnsavedBadge();
+  toast('Undid: ' + entry.label);
+  render();
+}
+
+function updateUndoBtn() {
+  const btn = document.getElementById('undo-btn');
+  const cnt = document.getElementById('undo-count');
+  if (!btn || !cnt) return;
+  if (undoStack.length > 0) {
+    btn.style.display = 'inline-flex';
+    cnt.textContent = undoStack.length;
+    const last = undoStack[undoStack.length - 1];
+    btn.title = 'Undo: ' + last.label + ' (' + undoStack.length + ' step' + (undoStack.length === 1 ? '' : 's') + ' available)';
+  } else {
+    btn.style.display = 'none';
+    cnt.textContent = '0';
+  }
+}
+
+
+function markUnsaved() { saveData(appData); }
+function clearUnsaved() { saveData(appData); }
+
+// ============================================================
+// SAMPLE DATA LOADER (demo/portfolio use only - all data is fictional)
+// ============================================================
+function loadSampleData() {
+  if (!confirm('This will replace ALL current data with fictional Triangle Area demo data. Continue?')) return;
+
+  const now = new Date();
+  const yr = now.getFullYear();
+  const mo = String(now.getMonth() + 1).padStart(2,'0');
+  const prevMo = now.getMonth() === 0 ? `${yr-1}-12` : `${yr}-${String(now.getMonth()).padStart(2,'0')}`;
+
+  const sample = {
+    meta: { lastTxnId: 28, lastDepId: 2, lastMaintId: 2, lastBackupDate: null, unsavedActions: 0 },
+    properties: [
+      { id: 'PROP-001', address: '412 Oberlin Rd', city: 'Raleigh', state: 'NC', zip: '27605', units: 4, type: 'Multi-family', status: 'Active', notes: '' },
+      { id: 'PROP-002', address: '188 Kildaire Farm Rd', city: 'Cary', state: 'NC', zip: '27511', units: 3, type: 'Multi-family', status: 'Active', notes: '' },
+      { id: 'PROP-003', address: '924 W Main St', city: 'Durham', state: 'NC', zip: '27701', units: 2, type: 'Duplex', status: 'Active', notes: 'Older HVAC units - monitor closely' },
+      { id: 'PROP-004', address: '77 Buckhorn Rd', city: 'Apex', state: 'NC', zip: '27502', units: 1, type: 'Single-family', status: 'Active', notes: '' },
+    ],
+    tenants: [
+      { id: 'TEN-001', fullName: 'Marcus Webb', lastName: 'Webb', firstName: 'Marcus', email: 'mwebb@email.com', phone: '919-555-0142', status: 'Active', notes: '' },
+      { id: 'TEN-002', fullName: 'Priya Nair', lastName: 'Nair', firstName: 'Priya', email: 'pnair@email.com', phone: '919-555-0287', status: 'Active', notes: '' },
+      { id: 'TEN-003', fullName: 'David and Lisa Torres', lastName: 'Torres', firstName: 'David and Lisa', email: 'dtorres@email.com', phone: '919-555-0391', status: 'Active', notes: 'Two dogs approved' },
+      { id: 'TEN-004', fullName: 'Keisha Holloway', lastName: 'Holloway', firstName: 'Keisha', email: 'kholloway@email.com', phone: '984-555-0156', status: 'Active', notes: '' },
+      { id: 'TEN-005', fullName: 'Ryan Okafor', lastName: 'Okafor', firstName: 'Ryan', email: 'rokafor@email.com', phone: '919-555-0478', status: 'Active', notes: 'Month-to-month after original lease ended' },
+      { id: 'TEN-006', fullName: 'Stephanie Marsh', lastName: 'Marsh', firstName: 'Stephanie', email: 'smarsh@email.com', phone: '984-555-0219', status: 'Active', notes: '' },
+      { id: 'TEN-007', fullName: 'James and Carol Nguyen', lastName: 'Nguyen', firstName: 'James and Carol', email: 'jnguyen@email.com', phone: '919-555-0533', status: 'Active', notes: '' },
+    ],
+    leases: [
+      { id: 'LSE-001', tenantId: 'TEN-001', tenantName: 'Marcus Webb', propertyId: 'PROP-001', propertyAddress: '412 Oberlin Rd, Unit 1A', unit: '1A', leaseStart: '2024-02-01', leaseEnd: `${yr+1}-01-31`, monthlyRent: 1350, rentDueDay: 1, lateFee: 75, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1350, status: 'Active', notes: '' },
+      { id: 'LSE-002', tenantId: 'TEN-002', tenantName: 'Priya Nair', propertyId: 'PROP-001', propertyAddress: '412 Oberlin Rd, Unit 1B', unit: '1B', leaseStart: '2024-05-01', leaseEnd: `${yr+1}-04-30`, monthlyRent: 1275, rentDueDay: 1, lateFee: 75, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1275, status: 'Active', notes: '' },
+      { id: 'LSE-003', tenantId: 'TEN-003', tenantName: 'David and Lisa Torres', propertyId: 'PROP-002', propertyAddress: '188 Kildaire Farm Rd, Unit 2A', unit: '2A', leaseStart: '2023-09-01', leaseEnd: `${yr+1}-08-31`, monthlyRent: 1500, rentDueDay: 1, lateFee: 75, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1500, status: 'Active', notes: '' },
+      { id: 'LSE-004', tenantId: 'TEN-004', tenantName: 'Keisha Holloway', propertyId: 'PROP-002', propertyAddress: '188 Kildaire Farm Rd, Unit 2B', unit: '2B', leaseStart: '2025-01-01', leaseEnd: `${yr+1}-12-31`, monthlyRent: 1425, rentDueDay: 1, lateFee: 75, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1425, status: 'Active', notes: '' },
+      { id: 'LSE-005', tenantId: 'TEN-005', tenantName: 'Ryan Okafor', propertyId: 'PROP-003', propertyAddress: '924 W Main St, Unit 3A', unit: '3A', leaseStart: '2023-03-01', leaseEnd: `${yr}-02-28`, monthlyRent: 1100, rentDueDay: 1, lateFee: 75, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1100, status: 'Month-to-Month', notes: 'Converted to month-to-month' },
+      { id: 'LSE-006', tenantId: 'TEN-006', tenantName: 'Stephanie Marsh', propertyId: 'PROP-003', propertyAddress: '924 W Main St, Unit 3B', unit: '3B', leaseStart: '2024-08-01', leaseEnd: `${yr+1}-07-31`, monthlyRent: 1150, rentDueDay: 1, lateFee: 75, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1150, status: 'Active', notes: '' },
+      { id: 'LSE-007', tenantId: 'TEN-007', tenantName: 'James and Carol Nguyen', propertyId: 'PROP-004', propertyAddress: '77 Buckhorn Rd', unit: '', leaseStart: '2024-11-01', leaseEnd: `${yr+1}-10-31`, monthlyRent: 1800, rentDueDay: 1, lateFee: 100, lateFeeDueDay: 6, gracePeriod: 5, depositAmount: 1800, status: 'Active', notes: 'Lawn care included' },
+    ],
+    deposits: [
+      { id: 'DEP-0001', date: `${prevMo}-05`, amount: 18500, description: 'Branch deposit', notes: '' },
+      { id: 'DEP-0002', date: `${yr}-${mo}-03`, amount: 9600, description: 'Branch deposit', notes: '' },
+    ],
+    maintenance: [
+      { id: 'MAINT-0001', propertyId: 'PROP-001', unit: '1A', date: `${prevMo}-12`, type: 'Plumbing', description: 'Leaking kitchen faucet, replaced cartridge', cost: 185, paid: 'Paid', vendor: 'Triangle Plumbing Co.', notes: '' },
+      { id: 'MAINT-0002', propertyId: 'PROP-003', unit: '3A', date: `${yr}-${mo}-07`, type: 'HVAC', description: 'Annual HVAC service, both units', cost: 320, paid: 'Pending', vendor: 'Comfort Air Services', notes: 'Invoice received, awaiting payment approval' },
+    ],
+    settings: {
+      maintenanceTypes: ['HVAC','Plumbing','Electrical','Appliance Repair','Pest Control','Landscaping','Painting','Flooring','Roof','Other'],
+      exceptionTypes: ['Full Waiver','Partial Waiver','Skip'],
+      paymentTypes: ['Cash','Check','Money Order','Other'],
+      receivedBy: ['Owner','Manager','Office'],
+      lastRefImport: null
+    },
+    ledger: [
+      { id: 'TXN-00001', tenantId: 'TEN-001', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1350, description: 'Monthly rent - 412 Oberlin Rd Unit 1A' },
+      { id: 'TXN-00002', tenantId: 'TEN-002', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1275, description: 'Monthly rent - 412 Oberlin Rd Unit 1B' },
+      { id: 'TXN-00003', tenantId: 'TEN-003', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1500, description: 'Monthly rent - 188 Kildaire Farm Rd Unit 2A' },
+      { id: 'TXN-00004', tenantId: 'TEN-004', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1425, description: 'Monthly rent - 188 Kildaire Farm Rd Unit 2B' },
+      { id: 'TXN-00005', tenantId: 'TEN-005', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1100, description: 'Monthly rent - 924 W Main St Unit 3A' },
+      { id: 'TXN-00006', tenantId: 'TEN-006', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1150, description: 'Monthly rent - 924 W Main St Unit 3B' },
+      { id: 'TXN-00007', tenantId: 'TEN-007', date: `${prevMo}-01`, month: prevMo, type: 'charge', amount: 1800, description: 'Monthly rent - 77 Buckhorn Rd' },
+      { id: 'TXN-00008', tenantId: 'TEN-001', date: `${prevMo}-03`, month: prevMo, type: 'payment', amount: -1350, description: 'Rent payment received' },
+      { id: 'TXN-00009', tenantId: 'TEN-002', date: `${prevMo}-04`, month: prevMo, type: 'payment', amount: -1275, description: 'Rent payment received' },
+      { id: 'TXN-00010', tenantId: 'TEN-003', date: `${prevMo}-02`, month: prevMo, type: 'payment', amount: -1500, description: 'Rent payment received' },
+      { id: 'TXN-00011', tenantId: 'TEN-004', date: `${prevMo}-05`, month: prevMo, type: 'payment', amount: -1425, description: 'Rent payment received' },
+      { id: 'TXN-00012', tenantId: 'TEN-005', date: `${prevMo}-08`, month: prevMo, type: 'payment', amount: -1100, description: 'Rent payment received - late' },
+      { id: 'TXN-00013', tenantId: 'TEN-005', date: `${prevMo}-08`, month: prevMo, type: 'late_fee', amount: 75, description: 'Late fee per lease agreement' },
+      { id: 'TXN-00014', tenantId: 'TEN-006', date: `${prevMo}-03`, month: prevMo, type: 'payment', amount: -1150, description: 'Rent payment received' },
+      { id: 'TXN-00015', tenantId: 'TEN-007', date: `${prevMo}-01`, month: prevMo, type: 'payment', amount: -1800, description: 'Rent payment received' },
+      { id: 'TXN-00016', tenantId: 'TEN-001', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1350, description: 'Monthly rent - 412 Oberlin Rd Unit 1A' },
+      { id: 'TXN-00017', tenantId: 'TEN-002', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1275, description: 'Monthly rent - 412 Oberlin Rd Unit 1B' },
+      { id: 'TXN-00018', tenantId: 'TEN-003', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1500, description: 'Monthly rent - 188 Kildaire Farm Rd Unit 2A' },
+      { id: 'TXN-00019', tenantId: 'TEN-004', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1425, description: 'Monthly rent - 188 Kildaire Farm Rd Unit 2B' },
+      { id: 'TXN-00020', tenantId: 'TEN-005', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1100, description: 'Monthly rent - 924 W Main St Unit 3A' },
+      { id: 'TXN-00021', tenantId: 'TEN-006', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1150, description: 'Monthly rent - 924 W Main St Unit 3B' },
+      { id: 'TXN-00022', tenantId: 'TEN-007', date: `${yr}-${mo}-01`, month: `${yr}-${mo}`, type: 'charge', amount: 1800, description: 'Monthly rent - 77 Buckhorn Rd' },
+      { id: 'TXN-00023', tenantId: 'TEN-001', date: `${yr}-${mo}-03`, month: `${yr}-${mo}`, type: 'payment', amount: -1350, description: 'Rent payment received' },
+      { id: 'TXN-00024', tenantId: 'TEN-002', date: `${yr}-${mo}-04`, month: `${yr}-${mo}`, type: 'payment', amount: -1275, description: 'Rent payment received' },
+      { id: 'TXN-00025', tenantId: 'TEN-007', date: `${yr}-${mo}-02`, month: `${yr}-${mo}`, type: 'payment', amount: -1800, description: 'Rent payment received' },
+      { id: 'TXN-00026', tenantId: 'TEN-003', date: `${yr}-${mo}-06`, month: `${yr}-${mo}`, type: 'payment', amount: -750, description: 'Partial payment received, balance outstanding' },
+      { id: 'TXN-00027', tenantId: 'TEN-006', date: `${yr}-${mo}-05`, month: `${yr}-${mo}`, type: 'payment', amount: -1150, description: 'Rent payment received' },
+    ]
+  };
+
+  appData = sample;
+  saveData(appData);
+  undoStack = [];
+  clearUnsaved();
+  toast('Sample data loaded. All data is fictional and for demonstration purposes only.');
+  render();
+}
+
+// ============================================================
+// COMPUTED / HELPERS
+// ============================================================
+function tenantBalance(tenantId) {
+  return appData.ledger
+    .filter(t => t.tenantId === tenantId)
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+}
+function fmt(n) {
+  n = parseFloat(n) || 0;
+  return '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDate(d) {
+  if (!d) return '';
+  // Handle Excel serial dates
+  if (typeof d === 'number') {
+    const excelEpoch = new Date(1899,11,30);
+    const dt = new Date(excelEpoch.getTime() + d * 86400000);
+    return dt.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
+  }
+  try {
+    const s = String(d).trim();
+    if (!s) return '';
+    // Already formatted date string
+    const dt = new Date(s + 'T12:00:00');
+    if (isNaN(dt)) return s;
+    return (dt.getMonth()+1).toString().padStart(2,'0') + '/' + dt.getDate().toString().padStart(2,'0') + '/' + dt.getFullYear();
+  } catch(e) { return String(d); }
+}
+function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function currentMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function activeLeases() {
+  return appData.leases.filter(l => ['Active','Month-to-Month'].includes(l.status));
+}
+function balClass(n) { if (n > 0.005) return 'bal-owed'; if (n < -0.005) return 'bal-credit'; return 'bal-zero'; }
+function balLabel(n) {
+  if (n > 0.005) return fmt(n) + ' owed';
+  if (n < -0.005) return fmt(-n) + ' credit';
+  return '$0.00';
+}
+function chargedMTD(month) {
+  return appData.ledger.filter(t => t.date && t.date.slice(0,7) === month && ['charge','late_fee'].includes(t.type)).reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
+}
+function collectedMTD(month) {
+  return appData.ledger.filter(t => t.date && t.date.slice(0,7) === month && t.type === 'payment').reduce((s,t)=>s+Math.abs(parseFloat(t.amount)||0),0);
+}
+function depositedMTD(month) {
+  return appData.deposits.filter(d => d.date && d.date.slice(0,7) === month).reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+}
+function undepositedCash() {
+  const pmts = appData.ledger.filter(t => t.type==='payment').reduce((s,t)=>s+Math.abs(parseFloat(t.amount)||0),0);
+  const deps = appData.deposits.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  return Math.max(0, pmts - deps);
+}
+function hasChargesForMonth(tenantId, month) {
+  return appData.ledger.some(t => t.tenantId===tenantId && t.type==='charge' && t.date && t.date.slice(0,7)===month);
+}
+function isTenantInArrears(tenantId) {
+  const nowDate = new Date();
+  const lease = activeLeases().find(l => l.tenantId === tenantId);
+  if (!lease) return false;
+
+  // Get all distinct charge months for this tenant
+  const chargeMonths = [...new Set(
+    appData.ledger
+      .filter(r => r.tenantId === tenantId && r.type === 'charge')
+      .map(r => r.date ? r.date.slice(0,7) : r.month)
+      .filter(Boolean)
+  )];
+
+  for (const month of chargeMonths) {
+    const [y, m] = month.split('-').map(Number);
+    // Due date = rent due day of that month
+    const dueDate = new Date(y, m - 1, lease.rentDueDay || 1);
+    // Past due = due date + grace period days
+    const pastDue = new Date(dueDate);
+    pastDue.setDate(pastDue.getDate() + (lease.gracePeriod || 5));
+
+    // If today hasn't passed the grace period for this charge month, skip it
+    if (nowDate <= pastDue) continue;
+
+    // Balance from all ledger entries UP TO AND INCLUDING this charge month
+    const balanceAsOf = appData.ledger
+      .filter(r => {
+        const rMonth = (r.date || r.month || '').slice(0,7);
+        const todayStr = today();
+        return r.tenantId === tenantId && rMonth && rMonth <= month && (r.date || '9999-99') <= todayStr;
+      })
+      .reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+
+    if (balanceAsOf > 0.005) return true;
+  }
+  return false;
+}
+function isLateFeeTriggered(lease) {
+  const now = new Date();
+  const monthStr = currentMonth(); // YYYY-MM of today
+
+  // Only trigger if today is past the grace period
+  const triggerDay = (lease.lateFeeDueDay||10) + (lease.gracePeriod||0);
+  if (now.getDate() < triggerDay) return false;
+
+  // Only consider charges posted for the CURRENT calendar month.
+  // Pre-posted charges for a future month should never trigger a late fee today.
+  const currentMonthCharged = appData.ledger
+    .filter(t => t.tenantId===lease.tenantId && t.type==='charge' && t.month===monthStr)
+    .reduce((s,t) => s + (parseFloat(t.amount)||0), 0);
+  // Only trigger if there are charges posted for this month at all
+  if (currentMonthCharged <= 0) return false;
+  // Use true running balance - credits from prior overpayments should offset
+  const todayStr = today();
+  const realBalance = appData.ledger
+    .filter(r => r.tenantId === lease.tenantId && (r.date || '').slice(0,10) <= todayStr)
+    .reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+  if (realBalance <= 0.005) return false;
+
+  // Check if a late fee or waiver was already posted for this month
+  const alreadyPosted = appData.ledger.some(t =>
+    t.tenantId===lease.tenantId && (t.type==='late_fee' || t.isLateFeeWaiver) && t.date && t.date.slice(0,7)===monthStr
+  );
+  return !alreadyPosted;
+}
+
+// ============================================================
+// SORTABLE TABLES
+// ============================================================
+const sortState = {};
+function sortTable(tableId, colIndex) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const key = tableId + '-' + colIndex;
+  const asc = sortState[key] !== true;
+  sortState[key] = asc;
+  // Reset all other col indicators for this table
+  table.querySelectorAll('th').forEach((th, i) => {
+    th.dataset.sorted = (i === colIndex) ? (asc ? 'asc' : 'desc') : '';
+  });
+  const tbody = table.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const aVal = (a.cells[colIndex] ? a.cells[colIndex].innerText : '').trim();
+    const bVal = (b.cells[colIndex] ? b.cells[colIndex].innerText : '').trim();
+    const aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
+    const bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
+    if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
+    return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function typeLabel(t) { return {charge:'Charge',payment:'Payment',late_fee:'Late Fee',waiver:'Waiver',correction:'Correction',deposit:'Deposit'}[t]||t; }
+function typeClass(t) { return {charge:'txn-charge',payment:'txn-payment',late_fee:'txn-late-fee',deposit:'txn-deposit',waiver:'txn-waiver',correction:'txn-correction'}[t]||''; }
+function badgeClass(s) { return (s||'').toLowerCase().replace(/[^a-z]/g,''); }
+
+// Month/Year dropdown builder
+function buildMonthYearSelects(selectedMonth, onChangeCallback) {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const selY = selectedMonth ? parseInt(selectedMonth.slice(0,4)) : new Date().getFullYear();
+  const selM = selectedMonth ? parseInt(selectedMonth.slice(5,7)) : new Date().getMonth()+1;
+  let mOpts = months.map((m,i) => `<option value="${i+1}" ${i+1===selM?'selected':''}>${m}</option>`).join('');
+  let yOpts = '';
+  for (let y = 2025; y <= 2035; y++) yOpts += `<option value="${y}" ${y===selY?'selected':''}>${y}</option>`;
+  return `<select id="sel-month" onchange="${onChangeCallback}" style="padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:13px">${mOpts}</select>
+          <select id="sel-year" onchange="${onChangeCallback}" style="padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:13px">${yOpts}</select>`;
+}
+function getSelectedMonth() {
+  const m = document.getElementById('sel-month');
+  const y = document.getElementById('sel-year');
+  if (!m || !y) return currentMonth();
+  return `${y.value}-${String(m.value).padStart(2,'0')}`;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let currentPage = 'dashboard';
+let currentDetailContext = null;
+
+function nav(page, ctx) {
+  currentPage = page;
+  currentDetailContext = ctx || null;
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.page===page));
+  const titles = {dashboard:'Dashboard',charges:'Monthly Charges',payments:'Payments',deposits:'Deposits',ledger:'Ledger',tenants:'Tenants',properties:'Properties',leases:'Leases',maintenance:'Maintenance',reports:'Reports'};
+  document.getElementById('page-title').textContent = titles[page]||page;
+  render();
+}
+
+function render() {
+  const c = document.getElementById('content');
+  c.innerHTML = '';
+  updateUndoBtn();
+  // Demo disclaimer banner -- always visible
+  c.insertAdjacentHTML('beforeend','<div class="banner info" style="margin-bottom:14px;font-size:12px">&#9432; <strong>Demo only.</strong> All data is fictional. This demo does not include the full feature set of the production tool. <a onclick="openInstructions()" style="cursor:pointer;font-weight:600;text-decoration:underline;margin-left:6px">Learn more</a></div>');
+  checkLateFeeAlert(c);
+  ({dashboard:renderDashboard,charges:renderCharges,payments:renderPayments,deposits:renderDeposits,ledger:renderLedger,tenants:renderTenants,properties:renderProperties,leases:renderLeases,maintenance:renderMaintenance,reports:renderReports}[currentPage]||renderDashboard)(c);
+}
+
+function checkLateFeeAlert(c) {
+  const triggered = activeLeases().filter(isLateFeeTriggered);
+  if (triggered.length === 0) return;
+  const items = triggered.map(l => {
+    const t = appData.tenants.find(x=>x.id===l.tenantId);
+    return `<div class="late-fee-item"><span class="lf-name">${t?t.fullName:l.tenantName} | ${l.propertyAddress}</span><span class="lf-amount">${fmt(l.lateFee)} late fee</span><button class="btn btn-amber btn-sm" onclick="postLateFee('${l.id}')">Post Fee</button><button class="btn btn-outline btn-sm" onclick="waiveLateFee('${l.id}')">Waive</button></div>`;
+  }).join('');
+  c.insertAdjacentHTML('beforeend',`<div class="banner danger" style="flex-direction:column;align-items:flex-start"><strong>&#9888; Late Fee Alert:</strong> ${triggered.length} tenant(s) past grace period with an outstanding balance.<div style="margin-top:10px;width:100%">${items}</div></div>`);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(c) {
+  const cm = currentMonth();
+  const al = activeLeases().length;
+  const charged = chargedMTD(cm);
+  const collected = collectedMTD(cm);
+  const deposited = depositedMTD(cm);
+  const undeposited = undepositedCash();
+  const arrears = activeLeases().filter(l=>isTenantInArrears(l.tenantId)).length;
+  c.insertAdjacentHTML('beforeend',`
+  <div class="kpi-grid">
+    <div class="kpi-tile"><div class="label">Active Leases<span class="tip" data-tip="Leases with status Active or Month-to-Month">?</span></div><div class="value">${al}</div></div>
+    <div class="kpi-tile"><div class="label">Charged MTD<span class="tip" data-tip="Total rent + late fee charges posted this calendar month">?</span></div><div class="value">${fmt(charged)}</div></div>
+    <div class="kpi-tile"><div class="label">Collected MTD<span class="tip" data-tip="Total payments posted this calendar month">?</span></div><div class="value">${fmt(collected)}</div></div>
+    <div class="kpi-tile"><div class="label">Deposited MTD<span class="tip" data-tip="Total deposit amounts logged this calendar month">?</span></div><div class="value">${fmt(deposited)}</div></div>
+    <div class="kpi-tile"><div class="label">Undeposited Cash<span class="tip" data-tip="All payments received minus all deposits logged. Non-zero means money in hand not yet taken to the bank.">?</span></div><div class="value ${undeposited>0?'bal-owed':''}">${fmt(undeposited)}</div></div>
+    <div class="kpi-tile"><div class="label">Tenants in Arrears<span class="tip" data-tip="Active tenants with a positive (owed) balance">?</span></div><div class="value ${arrears>0?'bal-owed':''}">${arrears}</div></div>
+  </div>
+
+  <div class="section-header"><h2>Rent Roll</h2></div>
+  <div class="table-wrap table-scroll" style="margin-bottom:20px"><table id="tbl-rentroll"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-rentroll',0)">Tenant</th><th class="sortable-th" onclick="sortTable('tbl-rentroll',1)">Property</th><th class="sortable-th" onclick="sortTable('tbl-rentroll',2)">Monthly Rent</th><th class="sortable-th" onclick="sortTable('tbl-rentroll',3)">Lease Status</th><th class="sortable-th" onclick="sortTable('tbl-rentroll',4)">Balance</th></tr></thead><tbody>
+  ${activeLeases().map(l=>{const t=appData.tenants.find(x=>x.id===l.tenantId);const bal=tenantBalance(l.tenantId);return `<tr><td><span class="clickable" onclick="nav('ledger',{tenantId:'${l.tenantId}'})">${t?t.fullName:l.tenantName}</span></td><td>${l.propertyAddress}</td><td>${fmt(l.monthlyRent)}</td><td><span class="badge ${badgeClass(l.status)}">${l.status}</span></td><td class="${balClass(bal)}">${balLabel(bal)}</td></tr>`;}).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">No active leases. Import the reference file to get started.</td></tr>'}
+  </tbody></table></div>
+
+  <div class="section-header"><h2>Accounts in Arrears</h2></div>
+  <div class="table-wrap table-scroll"><table id="tbl-arrears"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-arrears',0)">Tenant</th><th class="sortable-th" onclick="sortTable('tbl-arrears',1)">Property</th><th class="sortable-th" onclick="sortTable('tbl-arrears',2)">Balance Owed</th><th></th></tr></thead><tbody>
+  ${activeLeases().filter(l=>isTenantInArrears(l.tenantId)).map(l=>{const t=appData.tenants.find(x=>x.id===l.tenantId);const bal=tenantBalance(l.tenantId);return `<tr><td><span class="clickable" onclick="nav('tenants',{tenantId:'${l.tenantId}'})">${t?t.fullName:l.tenantName}</span></td><td>${l.propertyAddress}</td><td class="bal-owed">${fmt(bal)}</td><td><button class="btn btn-primary btn-sm" onclick="nav('payments',{tenantId:'${l.tenantId}'})">Post Payment</button></td></tr>`;}).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:20px">No tenants in arrears.</td></tr>'}
+  </tbody></table></div>`);
+}
+
+// ============================================================
+// MONTHLY CHARGES
+// ============================================================
+let pendingCharges = [];
+
+function renderCharges(c) {
+  c.insertAdjacentHTML('beforeend',`
+  <div class="section-header">
+    <h2>Post Monthly Rent Charges</h2>
+    <div class="actions">
+      ${buildMonthYearSelects(currentMonth(),'/* handled by button */')}
+      <button class="btn btn-primary" onclick="prefillCharges()">Pre-fill Charges</button>
+    </div>
+  </div>
+  <div id="charges-area">
+    <div class="panel"><p style="font-size:13px;color:var(--gray)">Select a month and year, then click "Pre-fill Charges" to generate one charge row per active lease that does not yet have a charge for that month. Review and adjust exceptions before posting.</p></div>
+  </div>`);
+}
+
+function prefillCharges() {
+  const month = getSelectedMonth();
+  const al = activeLeases();
+  if (al.length === 0) { toast('No active leases found. Import the reference file first.', true); return; }
+  const unposted = al.filter(l => !hasChargesForMonth(l.tenantId, month));
+  if (unposted.length === 0) { toast('All active tenants already have charges for ' + month + '.', true); return; }
+  pendingCharges = unposted.map(l => {
+    const t = appData.tenants.find(x=>x.id===l.tenantId);
+    return {
+      leaseId: l.id, tenantId: l.tenantId, propertyId: l.propertyId,
+      tenantName: t ? t.fullName : l.tenantName,
+      propertyAddress: l.propertyAddress,
+      origAmount: l.monthlyRent,
+      amount: l.monthlyRent,
+      exception: 'None', waiverAmount: 0,
+      date: month + '-01', month
+    };
+  });
+  renderChargesArea(month);
+}
+
+function renderChargesArea(month) {
+  const area = document.getElementById('charges-area');
+  if (!area) return;
+  const already = activeLeases().filter(l => hasChargesForMonth(l.tenantId, month)).length;
+  const waiverTip = 'Enter the dollar amount to deduct from base rent before posting. Example: base rent is $400, enter 100 here, final charge posted is $300.';
+
+  function finalCellHtml(pc) {
+    if (pc.exception === 'Skip') return '<span style="color:var(--gray);font-size:12px">Skipped</span>';
+    if (pc.exception === 'Full Waiver') return '<span style="color:var(--primary)">$0.00 (waived)</span>';
+    return '<span style="color:var(--dark)">' + fmt(pc.amount) + '</span>';
+  }
+
+  const rows = pendingCharges.map((pc,i) => `
+    <tr>
+      <td>${pc.tenantName}</td>
+      <td style="font-size:12px">${pc.propertyAddress}</td>
+      <td>${fmt(pc.origAmount)}</td>
+      <td>
+        <select id="exc-sel-${i}" onchange="chargeExceptionChange(${i},this.value)" style="font-size:12px;padding:4px;border:1px solid var(--border);border-radius:4px;width:100%">
+          <option value="None" ${pc.exception==='None'?'selected':''}>None</option>
+          <option value="Full Waiver" ${pc.exception==='Full Waiver'?'selected':''}>Full Waiver</option>
+          <option value="Partial Waiver" ${pc.exception==='Partial Waiver'?'selected':''}>Partial Waiver</option>
+          <option value="Skip" ${pc.exception==='Skip'?'selected':''}>Skip</option>
+        </select>
+      </td>
+      <td id="waiver-cell-${i}" style="min-width:130px">
+        ${pc.exception==='Partial Waiver'
+          ? `<div style="display:flex;align-items:center;gap:4px"><input type="number" id="waiver-input-${i}" min="0" max="${pc.origAmount}" step="0.01" value="${pc.waiverAmount>0?pc.waiverAmount:''}" placeholder="0.00" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" oninput="chargeWaiverChange(${i},this.value)"><span class="ttip" data-tip="${waiverTip}">?</span></div>`
+          : ''}
+      </td>
+      <td id="final-cell-${i}" style="font-weight:600">${finalCellHtml(pc)}</td>
+    </tr>`).join('');
+
+  const active = pendingCharges.filter(p=>p.exception!=='Skip');
+  const total = active.reduce((s,p)=>s+p.amount,0);
+
+  area.innerHTML = `
+  ${already>0?`<div class="banner info" style="margin-bottom:12px">&#9432; ${already} tenant(s) already have charges for ${month} and are excluded from this list.</div>`:''}
+  <div class="table-wrap table-scroll">
+  <table id="tbl-charges"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-charges',0)">Tenant</th><th class="sortable-th" onclick="sortTable('tbl-charges',1)">Property</th><th class="sortable-th" onclick="sortTable('tbl-charges',2)">Base Rent</th><th>Exception</th><th>Reduce By <span class="ttip" data-tip="${waiverTip}">?</span></th><th>Final Charge</th></tr></thead>
+  <tbody>${rows}</tbody></table></div>
+  <div class="confirm-area">
+    <div id="charge-summary" style="font-size:13px;color:var(--gray)">Posting charges for ${active.length} tenant(s)</div>
+    <div class="total-line" id="charge-total">Total to Post: ${fmt(total)}</div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-primary" id="post-charges-btn" onclick="postCharges()">Post ${active.length} Charge(s)</button>
+      <button class="btn btn-outline" onclick="cancelCharges()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function cancelCharges() {
+  pendingCharges = [];
+  const area = document.getElementById('charges-area');
+  if (area) area.innerHTML = '<div class="panel"><p style="font-size:13px;color:var(--gray)">Charges cleared. Select a month and click Pre-fill to start over.</p></div>';
+}
+
+function chargeExceptionChange(i, val) {
+  pendingCharges[i].exception = val;
+  if (val === 'Full Waiver') { pendingCharges[i].amount = 0; pendingCharges[i].waiverAmount = 0; }
+  else if (val === 'Skip')   { pendingCharges[i].amount = 0; pendingCharges[i].waiverAmount = 0; }
+  else if (val === 'None')   { pendingCharges[i].amount = pendingCharges[i].origAmount; pendingCharges[i].waiverAmount = 0; }
+  else if (val === 'Partial Waiver') { /* amount stays until user enters waiver value */ }
+  // Update the waiver input cell and final charge cell in place -- no full re-render needed
+  const waiverCell = document.getElementById(`waiver-cell-${i}`);
+  const finalCell  = document.getElementById(`final-cell-${i}`);
+  const waiverTip  = 'Enter the dollar amount to deduct from base rent before posting. Example: base rent is $400, enter 100 here, final charge posted is $300.';
+  if (waiverCell) {
+    waiverCell.innerHTML = val === 'Partial Waiver'
+      ? `<div style="display:flex;align-items:center;gap:4px"><input type="number" id="waiver-input-${i}" min="0" max="${pendingCharges[i].origAmount}" step="0.01" value="" placeholder="0.00" style="width:90px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" oninput="chargeWaiverChange(${i},this.value)"><span class="ttip" data-tip="${waiverTip}">?</span></div>`
+      : '';
+  }
+  if (finalCell) {
+    if (val === 'Skip')         finalCell.innerHTML = '<span style="color:var(--gray);font-size:12px">Skipped</span>';
+    else if (val === 'Full Waiver') finalCell.innerHTML = '<span style="color:var(--primary)">$0.00 (waived)</span>';
+    else if (val === 'Partial Waiver') finalCell.innerHTML = '<span style="color:var(--gray);font-size:12px">Enter amount</span>';
+    else                        finalCell.innerHTML = '<span style="color:var(--dark)">' + fmt(pendingCharges[i].origAmount) + '</span>';
+  }
+  updateChargeTotals();
+}
+
+function chargeWaiverChange(i, val) {
+  const w = Math.max(0, parseFloat(val)||0);
+  pendingCharges[i].waiverAmount = w;
+  pendingCharges[i].amount = Math.max(0, pendingCharges[i].origAmount - w);
+  const fc = document.getElementById(`final-cell-${i}`);
+  if (fc) fc.innerHTML = '<span style="color:var(--dark)">' + fmt(pendingCharges[i].amount) + '</span>';
+  updateChargeTotals();
+}
+
+function updateChargeTotals() {
+  const active = pendingCharges.filter(p=>p.exception!=='Skip');
+  const total = active.reduce((s,p)=>s+p.amount,0);
+  const cs = document.getElementById('charge-summary');
+  const ct = document.getElementById('charge-total');
+  const pb = document.getElementById('post-charges-btn');
+  if (cs) cs.textContent = `Posting charges for ${active.length} tenant(s)`;
+  if (ct) ct.textContent = `Total to Post: ${fmt(total)}`;
+  if (pb) pb.textContent = `Post ${active.length} Charge(s)`;
+}
+
+function postCharges() {
+  const month = getSelectedMonth();
+  const toPost = pendingCharges.filter(p=>p.exception!=='Skip');
+  if (toPost.length===0) { toast('Nothing to post.',true); return; }
+  pushUndo('Post ' + toPost.length + ' charge(s) for ' + month);
+  toPost.forEach(pc => {
+    if (pc.exception==='Full Waiver') {
+      appData.ledger.push({id:nextTxnId(),date:pc.date,tenantId:pc.tenantId,propertyId:pc.propertyId,type:'waiver',amount:0,description:`Full waiver - ${pc.month}`,month:pc.month});
+    } else {
+      if (pc.waiverAmount > 0) {
+        appData.ledger.push({id:nextTxnId(),date:pc.date,tenantId:pc.tenantId,propertyId:pc.propertyId,type:'waiver',amount:-pc.waiverAmount,description:`Partial waiver applied - ${pc.month}`,month:pc.month});
+      }
+      appData.ledger.push({id:nextTxnId(),date:pc.date,tenantId:pc.tenantId,propertyId:pc.propertyId,type:'charge',amount:pc.amount,description:`Monthly rent - ${pc.month}`,month:pc.month});
+    }
+  });
+  saveData(appData); markUnsaved();
+  pendingCharges = [];
+  toast(`${toPost.length} charge(s) posted for ${month}.`); render();
+}
+
+// ============================================================
+// LATE FEES
+// ============================================================
+function postLateFee(leaseId) {
+  const l = appData.leases.find(x=>x.id===leaseId); if (!l) return;
+  pushUndo('Post late fee for lease ' + leaseId);
+  appData.ledger.push({id:nextTxnId(),date:today(),tenantId:l.tenantId,propertyId:l.propertyId,type:'late_fee',amount:l.lateFee,description:`Late fee - ${currentMonth()}`,month:currentMonth()});
+  saveData(appData); markUnsaved(); toast('Late fee posted.'); render();
+}
+function waiveLateFee(leaseId) {
+  const l = appData.leases.find(x=>x.id===leaseId); if (!l) return;
+  pushUndo('Waive late fee for lease ' + leaseId);
+  appData.ledger.push({id:nextTxnId(),date:today(),tenantId:l.tenantId,propertyId:l.propertyId,type:'waiver',amount:0,description:`Late fee waived - ${currentMonth()}`,month:currentMonth(),isLateFeeWaiver:true});
+  saveData(appData); markUnsaved(); toast('Late fee waived.'); render();
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+function renderPayments(c) {
+  const al = activeLeases();
+  const sorted = al.map(l=>appData.tenants.find(t=>t.id===l.tenantId)).filter(Boolean).sort((a,b)=>a.lastName.localeCompare(b.lastName));
+  const preselect = (currentDetailContext&&currentDetailContext.tenantId)||'';
+  c.insertAdjacentHTML('beforeend',`
+  <div class="panel"><h3>Post Payment</h3>
+  <div class="form-grid">
+    <div class="field"><label>Tenant</label>
+      <select id="pmt-tenant" onchange="updatePaymentInfo(this.value)">
+        <option value="">-- Select Tenant --</option>
+        ${sorted.map(t=>`<option value="${t.id}" ${t.id===preselect?'selected':''}>${t.fullName}</option>`).join('')}
+      </select></div>
+    <div id="pmt-tenant-info"></div>
+    <div class="form-row cols-3">
+      <div class="field"><label>Date</label><input type="date" id="pmt-date" value="${today()}"></div>
+      <div class="field"><label>Amount ($)</label><input type="number" id="pmt-amount" min="0.01" step="0.01" placeholder="0.00" oninput="updatePaymentPreview()"></div>
+      <div class="field"><label>Payment Type</label><select id="pmt-type">${appData.settings.paymentTypes.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row cols-3">
+      <div class="field"><label>Check / MO #</label><input type="text" id="pmt-ref" placeholder="Optional"></div>
+      <div class="field"><label>Received By</label><select id="pmt-received">${appData.settings.receivedBy.map(r=>`<option>${r}</option>`).join('')}</select></div>
+      <div class="field"><label>Notes</label><input type="text" id="pmt-notes" placeholder="Optional"></div>
+    </div>
+    <div id="pmt-preview" style="display:none" class="confirm-area">
+      <div style="font-size:13px;color:var(--gray)">Balance after posting:</div>
+      <div id="pmt-preview-val" class="total-line"></div>
+    </div>
+    <div><button class="btn btn-primary" onclick="postPayment()">Post Payment</button></div>
+  </div></div>`);
+  if (preselect) updatePaymentInfo(preselect);
+}
+function updatePaymentInfo(tid) {
+  const info = document.getElementById('pmt-tenant-info'); if (!info) return;
+  if (!tid) { info.innerHTML=''; return; }
+  const l = activeLeases().find(x=>x.tenantId===tid);
+  const bal = tenantBalance(tid);
+  const lastPmt = [...appData.ledger].filter(t=>t.tenantId===tid&&t.type==='payment').sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const charged = appData.ledger.filter(t=>t.tenantId===tid&&['charge','late_fee'].includes(t.type)).reduce((s,t)=>s+t.amount,0);
+  info.innerHTML = `<div class="panel"><div class="info-grid">
+    <div class="info-item"><label>Current Balance</label><span class="${balClass(bal)}">${balLabel(bal)}</span></div>
+    <div class="info-item"><label>Last Payment</label><span>${lastPmt?`${fmtDate(lastPmt.date)} | ${fmt(Math.abs(lastPmt.amount))}`:'None on record'}</span></div>
+    <div class="info-item"><label>Total Charged</label><span>${fmt(charged)}</span></div>
+    ${l?`<div class="info-item"><label>Property</label><span>${l.propertyAddress}</span></div>`:''}
+  </div></div>`;
+  updatePaymentPreview();
+}
+function updatePaymentPreview() {
+  const tid = document.getElementById('pmt-tenant').value;
+  const amt = parseFloat(document.getElementById('pmt-amount').value)||0;
+  const preview = document.getElementById('pmt-preview');
+  const pval = document.getElementById('pmt-preview-val');
+  if (!preview||!pval) return;
+  if (!tid||amt<=0) { preview.style.display='none'; return; }
+  preview.style.display='block';
+  const newBal = tenantBalance(tid) - amt;
+  pval.className = 'total-line ' + balClass(newBal);
+  pval.textContent = `New balance: ${balLabel(newBal)}`;
+}
+function postPayment() {
+  const tid = document.getElementById('pmt-tenant').value;
+  const amt = parseFloat(document.getElementById('pmt-amount').value);
+  const date = document.getElementById('pmt-date').value;
+  if (!tid) { toast('Select a tenant.',true); return; }
+  if (!amt||amt<=0) { toast('Enter a valid amount.',true); return; }
+  if (!date) { toast('Enter a date.',true); return; }
+  const pmtType = document.getElementById('pmt-type') ? document.getElementById('pmt-type').value : '';
+  const pmtRef = document.getElementById('pmt-ref') ? document.getElementById('pmt-ref').value : '';
+  const pmtReceived = document.getElementById('pmt-received') ? document.getElementById('pmt-received').value : '';
+  const pmtNotes = document.getElementById('pmt-notes') ? document.getElementById('pmt-notes').value : '';
+  const l = activeLeases().find(x=>x.tenantId===tid);
+  pushUndo('Post payment for tenant ' + tid);
+  appData.ledger.push({
+    id:nextTxnId(), date, tenantId:tid, propertyId:l?l.propertyId:'',
+    type:'payment', amount:-amt,
+    paymentType:pmtType,
+    ref:pmtRef,
+    receivedBy:pmtReceived,
+    description:`Payment - ${pmtType}${pmtRef?' #'+pmtRef:''}`,
+    notes:pmtNotes
+  });
+  saveData(appData); markUnsaved(); toast('Payment posted.'); currentDetailContext=null; render();
+}
+
+// ============================================================
+// DEPOSITS
+// ============================================================
+function renderDeposits(c) {
+  const totalPmts = appData.ledger.filter(t=>t.type==='payment').reduce((s,t)=>s+Math.abs(t.amount),0);
+  const totalDeps = appData.deposits.reduce((s,d)=>s+d.amount,0);
+  const undeposited = totalPmts - totalDeps;
+  c.insertAdjacentHTML('beforeend',`
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+    <div class="kpi-tile"><div class="label">Undeposited Balance</div><div class="value ${undeposited>0?'bal-owed':''}">${fmt(undeposited)}</div><div class="sub">Payments received, not yet deposited</div></div>
+    <div class="kpi-tile"><div class="label">Deposited MTD</div><div class="value">${fmt(depositedMTD(currentMonth()))}</div></div>
+    <div class="kpi-tile"><div class="label">Deposited All Time</div><div class="value">${fmt(totalDeps)}</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:20px"><h3>Log New Deposit</h3>
+  <div class="form-grid">
+    <div class="form-row cols-3">
+      <div class="field"><label>Date</label><input type="date" id="dep-date" value="${today()}"></div>
+      <div class="field"><label>Amount ($)</label><input type="number" id="dep-amount" min="0.01" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Deposited By</label><input type="text" id="dep-by" placeholder="Name"></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="field"><label>Bank Reference #</label><input type="text" id="dep-ref" placeholder="Optional"></div>
+      <div class="field"><label>Notes</label><input type="text" id="dep-notes" placeholder="Optional"></div>
+    </div>
+    <div><button class="btn btn-primary" onclick="postDeposit()">Save Deposit</button></div>
+  </div></div>
+  <div class="section-header"><h2>Deposit History</h2></div>
+  <div class="table-wrap table-scroll"><table id="tbl-deposits"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-deposits',0)">Date</th><th class="sortable-th" onclick="sortTable('tbl-deposits',1)">Amount</th><th class="sortable-th" onclick="sortTable('tbl-deposits',2)">Deposited By</th><th class="sortable-th" onclick="sortTable('tbl-deposits',3)">Bank Ref</th><th>Notes</th></tr></thead><tbody>
+  ${[...appData.deposits].sort((a,b)=>b.date.localeCompare(a.date)).map(d=>`<tr><td>${fmtDate(d.date)}</td><td style="font-weight:600;color:var(--green)">${fmt(d.amount)}</td><td>${d.depositedBy||''}</td><td>${d.bankRef||''}</td><td>${d.notes||''}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:20px">No deposits recorded.</td></tr>'}
+  </tbody></table></div>`);
+}
+function postDeposit() {
+  const amt = parseFloat(document.getElementById('dep-amount').value);
+  const date = document.getElementById('dep-date').value;
+  if (!amt||amt<=0) { toast('Enter a valid amount.',true); return; }
+  if (!date) { toast('Enter a date.',true); return; }
+  pushUndo('Save deposit');
+  appData.deposits.push({id:nextDepId(),date,amount:amt,depositedBy:document.getElementById('dep-by').value,bankRef:document.getElementById('dep-ref').value,notes:document.getElementById('dep-notes').value});
+  saveData(appData); markUnsaved(); toast('Deposit saved.'); render();
+}
+
+// ============================================================
+// LEDGER
+// ============================================================
+function renderLedger(c) {
+  const filterTid = (currentDetailContext&&currentDetailContext.tenantId)||'';
+  const tenantOpts = [...appData.tenants].sort((a,b)=>a.lastName.localeCompare(b.lastName)).map(t=>`<option value="${t.id}" ${t.id===filterTid?'selected':''}>${t.fullName}</option>`).join('');
+  c.insertAdjacentHTML('beforeend',`
+  <div class="filter-bar">
+    <select id="lf-tenant" onchange="renderLedgerTable()"><option value="">All Tenants</option>${tenantOpts}</select>
+    <select id="lf-type" onchange="renderLedgerTable()"><option value="">All Types</option><option>charge</option><option>payment</option><option>late_fee</option><option>waiver</option><option>correction</option></select>
+    <input type="date" id="lf-from" onchange="renderLedgerTable()">
+    <input type="date" id="lf-to" onchange="renderLedgerTable()">
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('lf-tenant').value='';document.getElementById('lf-type').value='';document.getElementById('lf-from').value='';document.getElementById('lf-to').value='';renderLedgerTable()">Clear Filters</button>
+  </div>
+  <div id="ledger-table"></div>`);
+  renderLedgerTable(filterTid);
+}
+function renderLedgerTable(preselect) {
+  if (preselect) { const el=document.getElementById('lf-tenant'); if(el) el.value=preselect; }
+  const tid = document.getElementById('lf-tenant').value;
+  const type = document.getElementById('lf-type').value;
+  const from = document.getElementById('lf-from').value;
+  const to = document.getElementById('lf-to').value;
+  let rows = [...appData.ledger];
+  if (tid) rows = rows.filter(r=>r.tenantId===tid);
+  if (type) rows = rows.filter(r=>r.type===type);
+  if (from) rows = rows.filter(r=>r.date>=from);
+  if (to) rows = rows.filter(r=>r.date<=to);
+  rows.sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+
+  // Compute running balance per tenant
+  const balMap = {};
+  const byTenant = {};
+  appData.ledger.forEach(r=>{ if(!byTenant[r.tenantId]) byTenant[r.tenantId]=[]; byTenant[r.tenantId].push(r); });
+  Object.values(byTenant).forEach(arr => {
+    let run=0;
+    arr.sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id)).forEach(r=>{ run+=parseFloat(r.amount)||0; balMap[r.id]=run; });
+  });
+
+  const area = document.getElementById('ledger-table');
+  area.innerHTML = `<div class="table-wrap table-scroll"><table id="tbl-ledger"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-ledger',0)">TXN ID</th><th class="sortable-th" onclick="sortTable('tbl-ledger',1)">Date</th><th class="sortable-th" onclick="sortTable('tbl-ledger',2)">Tenant</th><th class="sortable-th" onclick="sortTable('tbl-ledger',3)">Property</th><th class="sortable-th" onclick="sortTable('tbl-ledger',4)">Type</th><th class="sortable-th" onclick="sortTable('tbl-ledger',5)">Amount</th><th class="sortable-th" onclick="sortTable('tbl-ledger',6)">Running Balance</th><th>Description</th><th></th></tr></thead><tbody>
+  ${rows.map(r=>{
+    const t=appData.tenants.find(x=>x.id===r.tenantId);
+    const p=appData.properties.find(x=>x.id===r.propertyId);
+    const amt=parseFloat(r.amount)||0;
+    const run=balMap[r.id]!==undefined?balMap[r.id]:0;
+    return `<tr>
+      <td style="font-size:11px;color:var(--gray);white-space:nowrap">${r.id}</td>
+      <td style="white-space:nowrap">${fmtDate(r.date)}</td>
+      <td><span class="clickable" onclick="nav('tenants',{tenantId:'${r.tenantId}'})">${t?t.fullName:r.tenantId}</span></td>
+      <td style="font-size:12px">${p?p.address:(r.propertyId||'')}</td>
+      <td><span class="${typeClass(r.type)}">${typeLabel(r.type)}</span></td>
+      <td class="${amt>=0?'txn-charge':'txn-payment'}" style="font-weight:600;white-space:nowrap">${amt>=0?'+':'-'}${fmt(Math.abs(amt))}</td>
+      <td class="${balClass(run)}" style="white-space:nowrap">${balLabel(run)}</td>
+      <td style="font-size:12px;color:var(--gray)">${r.description||''}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openCorrectionModal('${r.id}')">Correct</button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--gray);padding:20px">No transactions match the filter.</td></tr>'}
+  </tbody></table></div>`;
+}
+function openCorrectionModal(txnId) {
+  const r=appData.ledger.find(x=>x.id===txnId); if(!r) return;
+  const t=appData.tenants.find(x=>x.id===r.tenantId);
+  const amt=parseFloat(r.amount)||0;
+  // Default direction: opposite of original (positive original = credit correction, negative original = debit correction)
+  const defaultDir = amt >= 0 ? 'credit' : 'debit';
+  document.getElementById('modal-content').innerHTML=`
+  <h3>Post Correction for ${txnId}</h3>
+  <p style="font-size:13px;color:var(--gray);margin-bottom:4px">Original: <strong>${typeLabel(r.type)}</strong> ${fmt(Math.abs(amt))} on ${fmtDate(r.date)} for ${t?t.fullName:r.tenantId}</p>
+  <p style="font-size:12px;color:var(--gray);margin-bottom:16px">The original record will not be changed. This posts a new offsetting entry.</p>
+  <div class="form-grid">
+    <div class="form-row cols-2">
+      <div class="field"><label>Date</label><input type="date" id="corr-date" value="${today()}"></div>
+      <div class="field"><label>Amount ($)</label><input type="number" id="corr-amount" value="${Math.abs(amt).toFixed(2)}" step="0.01" min="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="field">
+      <label>Direction
+        <span class="ttip" data-tip="Debit increases the tenant's balance (adds to what they owe). Credit decreases the tenant's balance (reduces what they owe or adds a credit).">?</span>
+      </label>
+      <select id="corr-dir">
+        <option value="debit" ${defaultDir==='debit'?'selected':''}>Debit (increases balance / adds charge)</option>
+        <option value="credit" ${defaultDir==='credit'?'selected':''}>Credit (decreases balance / reduces charge)</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes</label><input type="text" id="corr-notes" value="Correction for ${txnId}"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="postCorrection('${txnId}','${r.tenantId}','${r.propertyId||''}')">Post Correction</button>
+  </div>`;
+  openModal();
+}
+function postCorrection(origId, tenantId, propertyId) {
+  const date=document.getElementById('corr-date').value;
+  const amt=parseFloat(document.getElementById('corr-amount').value);
+  const dir=document.getElementById('corr-dir').value;
+  const notes=document.getElementById('corr-notes').value;
+  if (!date) { toast('Enter a date.',true); return; }
+  if (!amt||amt<=0) { toast('Enter a valid amount.',true); return; }
+  // Debit = positive (increases balance), Credit = negative (decreases balance)
+  const corrAmt = dir === 'debit' ? Math.abs(amt) : -Math.abs(amt);
+  pushUndo('Post correction for ' + origId);
+  appData.ledger.push({id:nextTxnId(),date,tenantId,propertyId,type:'correction',amount:corrAmt,description:notes,correctionOf:origId});
+  saveData(appData); markUnsaved(); closeModal(); toast('Correction posted.'); render();
+}
+
+// ============================================================
+// TENANTS
+// ============================================================
+function renderTenants(c) {
+  if (currentDetailContext&&currentDetailContext.tenantId) { renderTenantDetail(c,currentDetailContext.tenantId); return; }
+  c.insertAdjacentHTML('beforeend',`
+  <div class="section-header"><h2>Tenant Directory</h2>
+  <div class="toggle-group">
+    <button class="active" id="tenant-toggle-active" onclick="setTenantFilter('active')">Active</button>
+    <button id="tenant-toggle-all" onclick="setTenantFilter('all')">All</button>
+  </div></div>
+  <div class="filter-bar">
+    <input type="text" id="tenant-search" placeholder="Search by name, phone, or email..." oninput="filterTenants()">
+    <span class="filter-count" id="tenant-count"></span>
+  </div>
+  <div class="table-wrap table-scroll"><table id="tbl-tenants"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-tenants',0)">ID</th><th class="sortable-th" onclick="sortTable('tbl-tenants',1)">Name</th><th class="sortable-th" onclick="sortTable('tbl-tenants',2)">Phone</th><th class="sortable-th" onclick="sortTable('tbl-tenants',3)">Email</th><th class="sortable-th" onclick="sortTable('tbl-tenants',4)">Status</th><th class="sortable-th" onclick="sortTable('tbl-tenants',5)">Balance</th></tr></thead>
+  <tbody id="tenant-table">${tenantRows(false,'')}</tbody></table></div>`);
+  updateTenantCount();
+}
+let tenantShowAll = false;
+function setTenantFilter(mode) {
+  tenantShowAll = mode === 'all';
+  document.getElementById('tenant-toggle-active').classList.toggle('active', !tenantShowAll);
+  document.getElementById('tenant-toggle-all').classList.toggle('active', tenantShowAll);
+  filterTenants();
+}
+function filterTenants() {
+  const q = (document.getElementById('tenant-search').value || '').toLowerCase();
+  document.getElementById('tenant-table').innerHTML = tenantRows(tenantShowAll, q);
+  updateTenantCount();
+}
+function updateTenantCount() {
+  const rows = document.querySelectorAll('#tenant-table tr');
+  const el = document.getElementById('tenant-count');
+  if (el) el.textContent = rows.length === 1 && rows[0].cells.length === 1 ? '' : rows.length + ' tenant(s)';
+}
+function tenantRows(all, q) {
+  let list = all ? appData.tenants : appData.tenants.filter(t=>t.status==='Active');
+  if (q) list = list.filter(t=>(t.fullName||'').toLowerCase().includes(q)||(t.phone||'').toLowerCase().includes(q)||(t.email||'').toLowerCase().includes(q));
+  return list.sort((a,b)=>a.lastName.localeCompare(b.lastName)).map(t=>{
+    const bal=tenantBalance(t.id);
+    return `<tr><td style="font-size:11px;color:var(--gray)">${t.id}</td><td><span class="clickable" onclick="nav('tenants',{tenantId:'${t.id}'})">${t.fullName}</span></td><td>${t.phone||''}</td><td>${t.email||''}</td><td><span class="badge ${badgeClass(t.status)}">${t.status}</span></td><td class="${balClass(bal)}">${balLabel(bal)}</td></tr>`;
+  }).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:20px">No tenants found.</td></tr>';
+}
+function renderTenantDetail(c, tid) {
+  const t=appData.tenants.find(x=>x.id===tid); if(!t) return;
+  const l=appData.leases.find(x=>x.tenantId===tid&&['Active','Month-to-Month'].includes(x.status));
+  const bal=tenantBalance(tid);
+  const txns=[...appData.ledger].filter(r=>r.tenantId===tid).sort((a,b)=>b.date.localeCompare(a.date));
+  const maint=l?appData.maintenance.filter(m=>m.propertyId===l.propertyId):[];
+  c.insertAdjacentHTML('beforeend',`
+  <div class="detail-panel">
+    <span class="back-btn" onclick="currentDetailContext=null;render()">&#8592; Back to Tenants</span>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <h2 style="font-size:18px;font-weight:700;color:var(--dark)">${t.fullName}</h2>
+      <span class="badge ${badgeClass(t.status)}">${t.status}</span>
+    </div>
+    <div class="info-grid">
+      <div class="info-item"><label>Tenant ID</label><span>${t.id}</span></div>
+      <div class="info-item"><label>Phone</label><span>${t.phone||'--'}</span></div>
+      <div class="info-item"><label>Alt Phone</label><span>${t.phone2||'--'}</span></div>
+      <div class="info-item"><label>Email</label><span>${t.email||'--'}</span></div>
+      <div class="info-item"><label>Balance</label><span class="${balClass(bal)}">${balLabel(bal)}</span></div>
+      ${t.notes?`<div class="info-item"><label>Notes</label><span>${t.notes}</span></div>`:''}
+    </div>
+    ${l?`<div class="panel"><h3>Active Lease</h3><div class="info-grid">
+      <div class="info-item"><label>Lease ID</label><span>${l.id}</span></div>
+      <div class="info-item"><label>Property</label><span>${l.propertyAddress}</span></div>
+      <div class="info-item"><label>Monthly Rent</label><span>${fmt(l.monthlyRent)}</span></div>
+      <div class="info-item"><label>Start</label><span>${fmtDate(l.leaseStart)}</span></div>
+      <div class="info-item"><label>Rent Due</label><span>Day ${l.rentDueDay}</span></div>
+      <div class="info-item"><label>Late Fee</label><span>${fmt(l.lateFee)} after day ${l.lateFeeDueDay} +${l.gracePeriod}d grace</span></div>
+    </div></div>`:''}
+    <div class="panel"><h3>Transaction History</h3>
+    <div class="table-wrap table-scroll"><table id="tbl-tenant-txns"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-tenant-txns',0)">TXN ID</th><th class="sortable-th" onclick="sortTable('tbl-tenant-txns',1)">Date</th><th class="sortable-th" onclick="sortTable('tbl-tenant-txns',2)">Type</th><th class="sortable-th" onclick="sortTable('tbl-tenant-txns',3)">Amount</th><th>Description</th></tr></thead><tbody>
+    ${txns.map(r=>{const amt=parseFloat(r.amount)||0;return `<tr><td style="font-size:11px;color:var(--gray)">${r.id}</td><td>${fmtDate(r.date)}</td><td class="${typeClass(r.type)}">${typeLabel(r.type)}</td><td class="${amt>=0?'txn-charge':'txn-payment'}">${amt>=0?'+':'-'}${fmt(Math.abs(amt))}</td><td style="font-size:12px;color:var(--gray)">${r.description||''}</td></tr>`;}).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:12px">No transactions.</td></tr>'}
+    </tbody></table></div></div>
+    ${maint.length>0?`<div class="panel"><h3>Maintenance at ${l.propertyAddress}</h3><div class="table-wrap table-scroll"><table id="tbl-tenant-maint"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-tenant-maint',0)">Date</th><th class="sortable-th" onclick="sortTable('tbl-tenant-maint',1)">Type</th><th class="sortable-th" onclick="sortTable('tbl-tenant-maint',2)">Vendor</th><th class="sortable-th" onclick="sortTable('tbl-tenant-maint',3)">Cost</th><th>Paid</th></tr></thead><tbody>
+    ${maint.sort((a,b)=>b.date.localeCompare(a.date)).map(m=>`<tr><td>${fmtDate(m.date)}</td><td>${m.type}</td><td>${m.vendor||''}</td><td>${fmt(m.cost)}</td><td>${m.paid}</td></tr>`).join('')}
+    </tbody></table></div></div>`:''}
+  </div>`);
+}
+
+// ============================================================
+// PROPERTIES
+// ============================================================
+function renderProperties(c) {
+  if (currentDetailContext&&currentDetailContext.propertyId) { renderPropertyDetail(c,currentDetailContext.propertyId); return; }
+  c.insertAdjacentHTML('beforeend',`
+  <div class="section-header"><h2>Property Portfolio</h2>
+  <div class="toggle-group">
+    <button class="active" id="prop-toggle-active" onclick="setPropFilter('active')">Active</button>
+    <button id="prop-toggle-all" onclick="setPropFilter('all')">All</button>
+  </div></div>
+  <div class="filter-bar">
+    <input type="text" id="prop-search" placeholder="Search by address, city, or type..." oninput="filterProps()">
+    <span class="filter-count" id="prop-count"></span>
+  </div>
+  <div class="table-wrap table-scroll"><table id="tbl-properties"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-properties',0)">ID</th><th class="sortable-th" onclick="sortTable('tbl-properties',1)">Address</th><th class="sortable-th" onclick="sortTable('tbl-properties',2)">City</th><th class="sortable-th" onclick="sortTable('tbl-properties',3)">Type</th><th class="sortable-th" onclick="sortTable('tbl-properties',4)">Status</th><th class="sortable-th" onclick="sortTable('tbl-properties',5)">Current Tenant</th><th class="sortable-th" onclick="sortTable('tbl-properties',6)">Balance</th></tr></thead>
+  <tbody id="prop-table">${propRows(false,'')}</tbody></table></div>`);
+  updatePropCount();
+}
+let propShowAll = false;
+function setPropFilter(mode) {
+  propShowAll = mode === 'all';
+  document.getElementById('prop-toggle-active').classList.toggle('active', !propShowAll);
+  document.getElementById('prop-toggle-all').classList.toggle('active', propShowAll);
+  filterProps();
+}
+function filterProps() {
+  const q = (document.getElementById('prop-search').value || '').toLowerCase();
+  document.getElementById('prop-table').innerHTML = propRows(propShowAll, q);
+  updatePropCount();
+}
+function updatePropCount() {
+  const rows = document.querySelectorAll('#prop-table tr');
+  const el = document.getElementById('prop-count');
+  if (el) el.textContent = rows.length === 1 && rows[0].cells.length === 1 ? '' : rows.length + ' property(ies)';
+}
+function propRows(all, q) {
+  let list = all ? appData.properties : appData.properties.filter(p=>p.status==='Active');
+  if (q) list = list.filter(p=>(p.address||'').toLowerCase().includes(q)||(p.city||'').toLowerCase().includes(q)||(p.type||'').toLowerCase().includes(q));
+  return list.map(p=>{
+    const l=appData.leases.find(x=>x.propertyId===p.id&&['Active','Month-to-Month'].includes(x.status));
+    const bal=l?tenantBalance(l.tenantId):0;
+    const tenant=l?(appData.tenants.find(t=>t.id===l.tenantId)||{}).fullName||l.tenantName:'--';
+    return `<tr><td style="font-size:11px;color:var(--gray)">${p.id}</td><td><span class="clickable" onclick="nav('properties',{propertyId:'${p.id}'})">${p.address}</span></td><td>${p.city}</td><td>${p.type}</td><td><span class="badge ${badgeClass(p.status)}">${p.status}</span></td><td>${l?`<span class="clickable" onclick="nav('tenants',{tenantId:'${l.tenantId}'})">${tenant}</span>`:'--'}</td><td class="${balClass(bal)}">${l?balLabel(bal):'--'}</td></tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">No properties found.</td></tr>';
+}
+function renderPropertyDetail(c, pid) {
+  const p=appData.properties.find(x=>x.id===pid); if(!p) return;
+  const leases=appData.leases.filter(x=>x.propertyId===pid);
+  const maint=appData.maintenance.filter(m=>m.propertyId===pid);
+  const totalRent=appData.ledger.filter(r=>r.propertyId===pid&&r.type==='charge').reduce((s,r)=>s+r.amount,0);
+  const activeLease=appData.leases.find(x=>x.propertyId===pid&&['Active','Month-to-Month'].includes(x.status));
+  const currentBal=activeLease?tenantBalance(activeLease.tenantId):null;
+  c.insertAdjacentHTML('beforeend',`
+  <div class="detail-panel">
+    <span class="back-btn" onclick="currentDetailContext=null;render()">&#8592; Back to Properties</span>
+    <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">${p.address}</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:16px">${p.city}, ${p.state} | ${p.type} | <span class="badge ${badgeClass(p.status)}">${p.status}</span></p>
+    <div class="info-grid">
+      <div class="info-item"><label>Property ID</label><span>${p.id}</span></div>
+      <div class="info-item"><label>Purchase Date</label><span>${fmtDate(p.purchaseDate)||'--'}</span></div>
+      <div class="info-item"><label>Total Rent Charged</label><span>${fmt(totalRent)}</span></div>
+      ${currentBal!==null?`<div class="info-item"><label>Current Balance</label><span class="${balClass(currentBal)}">${balLabel(currentBal)}</span></div>`:''}
+      ${p.notes?`<div class="info-item"><label>Notes</label><span>${p.notes}</span></div>`:''}
+    </div>
+    <div class="panel"><h3>Lease History</h3><div class="table-wrap table-scroll"><table id="tbl-prop-leases"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-prop-leases',0)">Lease ID</th><th class="sortable-th" onclick="sortTable('tbl-prop-leases',1)">Tenant</th><th class="sortable-th" onclick="sortTable('tbl-prop-leases',2)">Start</th><th class="sortable-th" onclick="sortTable('tbl-prop-leases',3)">End</th><th class="sortable-th" onclick="sortTable('tbl-prop-leases',4)">Rent</th><th class="sortable-th" onclick="sortTable('tbl-prop-leases',5)">Status</th></tr></thead><tbody>
+    ${leases.map(l=>`<tr><td style="font-size:11px;color:var(--gray)">${l.id}</td><td><span class="clickable" onclick="nav('tenants',{tenantId:'${l.tenantId}'})">${l.tenantName}</span></td><td>${fmtDate(l.leaseStart)}</td><td>${fmtDate(l.leaseEnd)||'--'}</td><td>${fmt(l.monthlyRent)}</td><td><span class="badge ${badgeClass(l.status)}">${l.status}</span></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:12px">No leases.</td></tr>'}
+    </tbody></table></div></div>
+    ${maint.length>0?`<div class="panel"><h3>Maintenance Log</h3><div class="table-wrap table-scroll"><table id="tbl-prop-maint"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-prop-maint',0)">Date</th><th class="sortable-th" onclick="sortTable('tbl-prop-maint',1)">Type</th><th class="sortable-th" onclick="sortTable('tbl-prop-maint',2)">Vendor</th><th class="sortable-th" onclick="sortTable('tbl-prop-maint',3)">Cost</th><th>Paid</th><th>Notes</th></tr></thead><tbody>
+    ${maint.sort((a,b)=>b.date.localeCompare(a.date)).map(m=>`<tr><td>${fmtDate(m.date)}</td><td>${m.type}</td><td>${m.vendor||''}</td><td>${fmt(m.cost)}</td><td>${m.paid}</td><td style="font-size:12px;color:var(--gray)">${m.notes||''}</td></tr>`).join('')}
+    </tbody></table></div></div>`:''}
+  </div>`);
+}
+
+// ============================================================
+// LEASES
+// ============================================================
+function renderLeases(c) {
+  if (currentDetailContext&&currentDetailContext.leaseId) { renderLeaseDetail(c,currentDetailContext.leaseId); return; }
+  c.insertAdjacentHTML('beforeend',`
+  <div class="section-header"><h2>Lease Registry</h2>
+  <div class="toggle-group">
+    <button class="active" onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('lease-table').innerHTML=leaseRows(false)">Active</button>
+    <button onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));this.classList.add('active');document.getElementById('lease-table').innerHTML=leaseRows(true)">All</button>
+  </div></div>
+  <div class="table-wrap table-scroll"><table id="tbl-leases"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-leases',0)">Lease ID</th><th class="sortable-th" onclick="sortTable('tbl-leases',1)">Tenant</th><th class="sortable-th" onclick="sortTable('tbl-leases',2)">Property</th><th class="sortable-th" onclick="sortTable('tbl-leases',3)">Status</th><th class="sortable-th" onclick="sortTable('tbl-leases',4)">Monthly Rent</th><th class="sortable-th" onclick="sortTable('tbl-leases',5)">Start</th><th class="sortable-th" onclick="sortTable('tbl-leases',6)">End</th></tr></thead>
+  <tbody id="lease-table">${leaseRows(false)}</tbody></table></div>`);
+}
+function leaseRows(all) {
+  const list = all ? appData.leases : appData.leases.filter(l=>['Active','Month-to-Month'].includes(l.status));
+  return list.map(l=>`<tr><td style="font-size:11px;color:var(--gray)"><span class="clickable" onclick="nav('leases',{leaseId:'${l.id}'})">${l.id}</span></td><td><span class="clickable" onclick="nav('tenants',{tenantId:'${l.tenantId}'})">${l.tenantName}</span></td><td>${l.propertyAddress}</td><td><span class="badge ${badgeClass(l.status)}">${l.status}</span></td><td>${fmt(l.monthlyRent)}</td><td>${fmtDate(l.leaseStart)}</td><td>${fmtDate(l.leaseEnd)||'--'}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:20px">No leases found.</td></tr>';
+}
+function renderLeaseDetail(c, lid) {
+  const l=appData.leases.find(x=>x.id===lid); if(!l) return;
+  const bal=tenantBalance(l.tenantId);
+  const txns=[...appData.ledger].filter(r=>r.tenantId===l.tenantId).sort((a,b)=>b.date.localeCompare(a.date));
+  c.insertAdjacentHTML('beforeend',`
+  <div class="detail-panel">
+    <span class="back-btn" onclick="currentDetailContext=null;render()">&#8592; Back to Leases</span>
+    <h2 style="font-size:18px;font-weight:700;color:var(--dark);margin-bottom:4px">${l.id}</h2>
+    <div class="info-grid" style="margin-bottom:16px">
+      <div class="info-item"><label>Tenant</label><span class="clickable" onclick="nav('tenants',{tenantId:'${l.tenantId}'})">${l.tenantName}</span></div>
+      <div class="info-item"><label>Property</label><span class="clickable" onclick="nav('properties',{propertyId:'${l.propertyId}'})">${l.propertyAddress}</span></div>
+      <div class="info-item"><label>Status</label><span class="badge ${badgeClass(l.status)}">${l.status}</span></div>
+      <div class="info-item"><label>Current Balance</label><span class="${balClass(bal)}">${balLabel(bal)}</span></div>
+      <div class="info-item"><label>Monthly Rent</label><span>${fmt(l.monthlyRent)}</span></div>
+      <div class="info-item"><label>Start</label><span>${fmtDate(l.leaseStart)}</span></div>
+      <div class="info-item"><label>End</label><span>${fmtDate(l.leaseEnd)||'Month-to-Month'}</span></div>
+      <div class="info-item"><label>Rent Due Day</label><span>Day ${l.rentDueDay}</span></div>
+      <div class="info-item"><label>Late Fee</label><span>${fmt(l.lateFee)} after day ${l.lateFeeDueDay} +${l.gracePeriod}d grace</span></div>
+      ${l.notes?`<div class="info-item"><label>Notes</label><span>${l.notes}</span></div>`:''}
+    </div>
+    <div class="panel"><h3>Payment History</h3><div class="table-wrap table-scroll"><table id="tbl-lease-txns"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-lease-txns',0)">TXN ID</th><th class="sortable-th" onclick="sortTable('tbl-lease-txns',1)">Date</th><th class="sortable-th" onclick="sortTable('tbl-lease-txns',2)">Type</th><th class="sortable-th" onclick="sortTable('tbl-lease-txns',3)">Amount</th><th>Description</th></tr></thead><tbody>
+    ${txns.map(r=>{const amt=parseFloat(r.amount)||0;return `<tr><td style="font-size:11px;color:var(--gray)">${r.id}</td><td>${fmtDate(r.date)}</td><td class="${typeClass(r.type)}">${typeLabel(r.type)}</td><td class="${amt>=0?'txn-charge':'txn-payment'}">${amt>=0?'+':'-'}${fmt(Math.abs(amt))}</td><td style="font-size:12px;color:var(--gray)">${r.description||''}</td></tr>`;}).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:12px">No transactions.</td></tr>'}
+    </tbody></table></div></div>
+  </div>`);
+}
+
+// ============================================================
+// MAINTENANCE
+// ============================================================
+function renderMaintenance(c) {
+  const propOpts = appData.properties.filter(p=>p.status==='Active').map(p=>`<option value="${p.id}">${p.address} (${p.id})</option>`).join('');
+  const typeOpts = appData.settings.maintenanceTypes.map(t=>`<option>${t}</option>`).join('');
+  c.insertAdjacentHTML('beforeend',`
+  <div class="panel" style="margin-bottom:20px"><h3>Log Maintenance</h3>
+  <div class="form-grid">
+    <div class="form-row cols-3">
+      <div class="field"><label>Property</label><select id="maint-prop"><option value="">-- Select --</option>${propOpts}</select></div>
+      <div class="field"><label>Date</label><input type="date" id="maint-date" value="${today()}"></div>
+      <div class="field"><label>Type</label><select id="maint-type">${typeOpts}</select></div>
+    </div>
+    <div class="form-row cols-3">
+      <div class="field"><label>Vendor</label><input type="text" id="maint-vendor" placeholder="Optional"></div>
+      <div class="field"><label>Cost ($)</label><input type="number" id="maint-cost" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Paid Status</label><select id="maint-paid"><option>Yes</option><option>Pending</option><option>No</option></select></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="maint-notes" placeholder="Describe the work performed"></textarea></div>
+    <div><button class="btn btn-primary" onclick="saveMaintenance()">Save Maintenance Log</button></div>
+  </div></div>
+  <div class="section-header"><h2>Maintenance Log</h2>
+  <div class="filter-bar">
+    <select id="maint-filter-prop" onchange="renderMaintTable()"><option value="">All Properties</option>${appData.properties.map(p=>`<option value="${p.id}">${p.address}</option>`).join('')}</select>
+  </div></div>
+  <div id="maint-table-area"></div>`);
+  renderMaintTable();
+}
+function renderMaintTable() {
+  const fp=document.getElementById('maint-filter-prop').value;
+  let rows=[...appData.maintenance];
+  if(fp) rows=rows.filter(m=>m.propertyId===fp);
+  rows.sort((a,b)=>b.date.localeCompare(a.date));
+  const total=rows.reduce((s,m)=>s+(parseFloat(m.cost)||0),0);
+  const area=document.getElementById('maint-table-area');
+  area.innerHTML=`<div class="table-wrap table-scroll"><table id="tbl-maint"><thead><tr><th class="sortable-th" onclick="sortTable('tbl-maint',0)">Date</th><th class="sortable-th" onclick="sortTable('tbl-maint',1)">Property</th><th class="sortable-th" onclick="sortTable('tbl-maint',2)">Type</th><th class="sortable-th" onclick="sortTable('tbl-maint',3)">Vendor</th><th class="sortable-th" onclick="sortTable('tbl-maint',4)">Cost</th><th class="sortable-th" onclick="sortTable('tbl-maint',5)">Paid Status</th><th>Notes</th><th></th></tr></thead><tbody>
+  ${rows.map(m=>{const p=appData.properties.find(x=>x.id===m.propertyId);return `<tr><td>${fmtDate(m.date)}</td><td>${p?p.address:m.propertyId}</td><td>${m.type}</td><td>${m.vendor||''}</td><td>${fmt(m.cost)}</td><td><span class="tag ${m.paid==='Yes'?'green':m.paid==='Pending'?'amber':'red'}">${m.paid}</span></td><td style="font-size:12px;color:var(--gray)">${m.notes||''}</td><td>${m.paid!=='Yes'?`<button class="btn btn-green btn-sm" onclick="updateMaintPaid('${m.id}')">Mark Paid</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:20px">No maintenance records.</td></tr>'}
+  </tbody><tfoot><tr><td colspan="4" style="font-weight:600">Total</td><td style="font-weight:700">${fmt(total)}</td><td colspan="3"></td></tr></tfoot></table></div>`;
+}
+function updateMaintPaid(id) {
+  const m=appData.maintenance.find(x=>x.id===id); if(!m) return;
+  pushUndo('Mark maintenance paid: ' + id);
+  m.paid='Yes';
+  saveData(appData); markUnsaved(); toast('Paid status updated.'); renderMaintTable();
+}
+function saveMaintenance() {
+  const propId=document.getElementById('maint-prop').value;
+  const date=document.getElementById('maint-date').value;
+  if(!propId) { toast('Select a property.',true); return; }
+  if(!date) { toast('Enter a date.',true); return; }
+  pushUndo('Save maintenance log');
+  appData.maintenance.push({
+    id:nextMaintId(),
+    propertyId:propId,date,
+    type:document.getElementById('maint-type').value,
+    vendor:document.getElementById('maint-vendor').value,
+    cost:parseFloat(document.getElementById('maint-cost').value)||0,
+    paid:document.getElementById('maint-paid').value,
+    notes:document.getElementById('maint-notes').value
+  });
+  saveData(appData); markUnsaved(); toast('Maintenance record saved.'); render();
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+function renderReports(c) {
+  c.insertAdjacentHTML('beforeend',`
+  <div class="section-header"><h2>Reports</h2><span style="font-size:12px;color:var(--gray);font-style:italic">View-only in demo. Export functionality available in the full product.</span></div>
+  <div class="panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div><h3 style="margin-bottom:2px">Monthly Summary</h3><p style="font-size:12px;color:var(--gray);margin:0">All transactions posted within the selected month.</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="month" id="rpt-month" value="${currentMonth()}" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+        <button class="btn btn-primary btn-sm" onclick="runMonthlySummary()">&#9654; Run Report</button>
+      </div>
+    </div>
+    <div id="rpt-monthly-view"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div><h3 style="margin-bottom:2px">Year-to-Date</h3><p style="font-size:12px;color:var(--gray);margin:0">All transactions within the selected calendar year.</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="number" id="rpt-year" value="${new Date().getFullYear()}" min="2020" max="2035" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;width:90px">
+        <button class="btn btn-primary btn-sm" onclick="runYTD()">&#9654; Run Report</button>
+      </div>
+    </div>
+    <div id="rpt-ytd-view"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div><h3 style="margin-bottom:2px">Arrears Aging</h3><p style="font-size:12px;color:var(--gray);margin:0">Outstanding balances bucketed by age: 0-30, 31-60, 61-90, 90+ days.</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="runAging()">&#9654; Run Report</button>
+      </div>
+    </div>
+    <div id="rpt-aging-view"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div><h3 style="margin-bottom:2px">Tenant Statement</h3><p style="font-size:12px;color:var(--gray);margin:0">Full ledger history for a single tenant with running balance.</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="rpt-tenant" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">${[...appData.tenants].sort((a,b)=>(a.lastName||a.fullName||'').localeCompare(b.lastName||b.fullName||'')).map(t=>'<option value="'+t.id+'">'+t.fullName+'</option>').join('')}</select>
+        <button class="btn btn-primary btn-sm" onclick="runTenantStatement()">&#9654; Run Report</button>
+      </div>
+    </div>
+    <div id="rpt-stmt-view"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      <div><h3 style="margin-bottom:2px">Maintenance Costs</h3><p style="font-size:12px;color:var(--gray);margin:0">All maintenance records with vendor, cost, and paid status.</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="runMaintCosts()">&#9654; Run Report</button>
+      </div>
+    </div>
+    <div id="rpt-maint-view"></div>
+  </div>
+  `);
+}
+
+// ============================================================
+// IN-APP REPORT RENDERERS
+// ============================================================
+function reportTable(id, headers, rows, emptyMsg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!rows.length) { el.innerHTML=`<p style="color:var(--gray);font-size:13px;padding:8px 0">${emptyMsg||'No records found.'}</p>`; return; }
+  const ths = headers.map((h,i)=>`<th class="sortable-th" onclick="sortTable('${id}-tbl',${i})">${h}</th>`).join('');
+  const trs = rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('');
+  el.innerHTML = `<div class="report-view"><div class="report-view-header"><h4>Results</h4><span>${rows.length} row(s)</span></div><div class="table-wrap table-scroll"><table id="${id}-tbl"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
+}
+function reportSummaryBar(id, stats) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const html = stats.map(s=>`<span><b>${s.label}:</b> ${s.value}</span>`).join('');
+  const existing = el.querySelector('.report-view');
+  if (existing) existing.insertAdjacentHTML('afterbegin',`<div class="report-summary-row">${html}</div>`);
+}
+function runMonthlySummary() {
+  const m = document.getElementById('rpt-month').value;
+  const txns = appData.ledger.filter(t=>t.date&&t.date.slice(0,7)===m).sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCharged = txns.filter(t=>t.type==='charge'||t.type==='late_fee').reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
+  const totalPaid = txns.filter(t=>t.type==='payment'||t.type==='waiver').reduce((s,t)=>s+Math.abs(parseFloat(t.amount)||0),0);
+  const rows = txns.map(t=>[
+    `<span style="font-size:11px;color:var(--gray)">${t.id}</span>`,
+    fmtDate(t.date),
+    (appData.tenants.find(x=>x.id===t.tenantId)||{}).fullName||t.tenantId,
+    (appData.properties.find(x=>x.id===t.propertyId)||{}).address||'',
+    typeLabel(t.type),
+    `<span style="${['payment','waiver'].includes(t.type)?'color:#15803d':'color:#374151'}">${['payment','waiver'].includes(t.type)?'('+fmt(Math.abs(parseFloat(t.amount)||0))+')':fmt(parseFloat(t.amount)||0)}</span>`,
+    t.description||''
+  ]);
+  reportTable('rpt-monthly-view',['TXN ID','Date','Tenant','Property','Type','Amount','Description'],rows,'No transactions for this month.');
+  reportSummaryBar('rpt-monthly-view',[{label:'Transactions',value:txns.length},{label:'Total Charged',value:fmt(totalCharged)},{label:'Total Collected',value:fmt(totalPaid)},{label:'Net',value:fmt(totalPaid-totalCharged)}]);
+}
+function runYTD() {
+  const y = document.getElementById('rpt-year').value;
+  const txns = appData.ledger.filter(t=>t.date&&t.date.startsWith(y)).sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCharged = txns.filter(t=>t.type==='charge'||t.type==='late_fee').reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
+  const totalPaid = txns.filter(t=>t.type==='payment'||t.type==='waiver').reduce((s,t)=>s+Math.abs(parseFloat(t.amount)||0),0);
+  const rows = txns.map(t=>[
+    `<span style="font-size:11px;color:var(--gray)">${t.id}</span>`,
+    fmtDate(t.date),
+    (appData.tenants.find(x=>x.id===t.tenantId)||{}).fullName||t.tenantId,
+    (appData.properties.find(x=>x.id===t.propertyId)||{}).address||'',
+    typeLabel(t.type),
+    `<span style="${['payment','waiver'].includes(t.type)?'color:#15803d':'color:#374151'}">${['payment','waiver'].includes(t.type)?'('+fmt(Math.abs(parseFloat(t.amount)||0))+')':fmt(parseFloat(t.amount)||0)}</span>`,
+    t.description||''
+  ]);
+  reportTable('rpt-ytd-view',['TXN ID','Date','Tenant','Property','Type','Amount','Description'],rows,`No transactions for ${y}.`);
+  reportSummaryBar('rpt-ytd-view',[{label:'Transactions',value:txns.length},{label:'Total Charged',value:fmt(totalCharged)},{label:'Total Collected',value:fmt(totalPaid)},{label:'Net',value:fmt(totalPaid-totalCharged)}]);
+}
+function runAging() {
+  const now = new Date();
+  const buckets = {'0-30':[],'31-60':[],'61-90':[],'90+':[]};
+  activeLeases().forEach(l=>{
+    const t = appData.tenants.find(x=>x.id===l.tenantId);
+    const bal = tenantBalance(l.tenantId);
+    if (bal<=0.005) return;
+    const oldest = appData.ledger.filter(r=>r.tenantId===l.tenantId&&r.type==='charge').sort((a,b)=>a.date.localeCompare(b.date))[0];
+    const age = oldest ? Math.floor((now-new Date(oldest.date))/(1000*60*60*24)) : 0;
+    const bkt = age<=30?'0-30':age<=60?'31-60':age<=90?'61-90':'90+';
+    buckets[bkt].push({name:(t||{}).fullName||l.tenantName,property:l.propertyAddress,bal,age});
+  });
+  const totalOwed = Object.values(buckets).flat().reduce((s,r)=>s+r.bal,0);
+  const totalCount = Object.values(buckets).flat().length;
+  const el = document.getElementById('rpt-aging-view');
+  if (!el) return;
+  if (!totalCount) { el.innerHTML=`<p style="color:var(--gray);font-size:13px;padding:8px 0">No tenants in arrears. All accounts current.</p>`; return; }
+  const bktColors = {'0-30':'#15803d','31-60':'#b45309','61-90':'#c2410c','90+':'#991b1b'};
+  let html = `<div class="report-view"><div class="report-view-header"><h4>Arrears Aging Report</h4><span>${totalCount} tenant(s) in arrears &bull; ${fmt(totalOwed)} total owed</span></div>`;
+  Object.entries(buckets).forEach(([bkt,items])=>{
+    if (!items.length) return;
+    const bktTotal = items.reduce((s,r)=>s+r.bal,0);
+    html += `<div class="aging-bucket" style="border-left:4px solid ${bktColors[bkt]}">
+      <h5 style="color:${bktColors[bkt]}">${bkt} Days | ${items.length} tenant(s) | ${fmt(bktTotal)}</h5>
+      <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#f8fafc"><th style="padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid #e2e8f0">Tenant</th><th style="padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid #e2e8f0">Property</th><th style="padding:6px 10px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0">Balance</th><th style="padding:6px 10px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0">Days</th></tr></thead>
+        <tbody>${items.sort((a,b)=>b.bal-a.bal).map(r=>`<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9">${r.name}</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:var(--gray);font-size:12px">${r.property}</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right;color:#991b1b;font-weight:600">${fmt(r.bal)}</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right;color:${bktColors[bkt]};font-weight:500">${r.age}d</td></tr>`).join('')}</tbody>
+      </table></div></div>`;
+  });
+  el.innerHTML = html + '</div>';
+}
+function runTenantStatement() {
+  const tid = document.getElementById('rpt-tenant').value;
+  const t = appData.tenants.find(x=>x.id===tid);
+  if (!t) return;
+  let run = 0;
+  const txns = appData.ledger.filter(r=>r.tenantId===tid).sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCharged = txns.filter(r=>r.type==='charge'||r.type==='late_fee').reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+  const totalPaid = txns.filter(r=>r.type==='payment'||r.type==='waiver').reduce((s,r)=>s+Math.abs(parseFloat(r.amount)||0),0);
+  const rows = txns.map(r=>{
+    const amt = parseFloat(r.amount)||0; run += amt;
+    const ac = ['payment','waiver'].includes(r.type)?'color:#15803d':'';
+    const bc = run>0.005?'color:#991b1b;font-weight:600':run<-0.005?'color:#15803d;font-weight:600':'';
+    return [`<span style="font-size:11px;color:var(--gray)">${r.id}</span>`,fmtDate(r.date),typeLabel(r.type),`<span style="${ac}">${['payment','waiver'].includes(r.type)?'('+fmt(Math.abs(amt))+')':fmt(amt)}</span>`,`<span style="${bc}">${fmt(run)}</span>`,`<span style="color:var(--gray);font-size:12px">${r.description||''}</span>`];
+  });
+  reportTable('rpt-stmt-view',['TXN ID','Date','Type','Amount','Running Balance','Description'],rows,'No transactions on record for this tenant.');
+  reportSummaryBar('rpt-stmt-view',[{label:'Tenant',value:t.fullName},{label:'Total Charged',value:fmt(totalCharged)},{label:'Total Paid',value:fmt(totalPaid)},{label:'Current Balance',value:fmt(tenantBalance(tid))}]);
+}
+function runPropertyHistory() {
+  const pid = document.getElementById('rpt-prop').value;
+  const prop = appData.properties.find(x=>x.id===pid);
+  const txns = appData.ledger.filter(r=>r.propertyId===pid).sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCharged = txns.filter(t=>t.type==='charge'||t.type==='late_fee').reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
+  const totalPaid = txns.filter(t=>t.type==='payment'||t.type==='waiver').reduce((s,t)=>s+Math.abs(parseFloat(t.amount)||0),0);
+  const rows = txns.map(t=>[`<span style="font-size:11px;color:var(--gray)">${t.id}</span>`,fmtDate(t.date),(appData.tenants.find(x=>x.id===t.tenantId)||{}).fullName||t.tenantId,typeLabel(t.type),`<span style="${['payment','waiver'].includes(t.type)?'color:#15803d':'color:#374151'}">${['payment','waiver'].includes(t.type)?'('+fmt(Math.abs(parseFloat(t.amount)||0))+')':fmt(parseFloat(t.amount)||0)}</span>`,t.description||'']);
+  reportTable('rpt-prop-view',['TXN ID','Date','Tenant','Type','Amount','Description'],rows,'No transactions for this property.');
+  reportSummaryBar('rpt-prop-view',[{label:'Property',value:(prop||{}).address||pid},{label:'Total Charged',value:fmt(totalCharged)},{label:'Total Collected',value:fmt(totalPaid)},{label:'Net',value:fmt(totalPaid-totalCharged)}]);
+}
+function runMaintCosts() {
+  const records = [...appData.maintenance].sort((a,b)=>a.date.localeCompare(b.date));
+  const totalCost = records.reduce((s,m)=>s+(parseFloat(m.cost)||0),0);
+  const unpaid = records.filter(m=>m.paid!=='Paid').reduce((s,m)=>s+(parseFloat(m.cost)||0),0);
+  const rows = records.map(m=>[`<span style="font-size:11px;color:var(--gray)">${m.id}</span>`,fmtDate(m.date),(appData.properties.find(x=>x.id===m.propertyId)||{}).address||m.propertyId,m.type,m.vendor||'--',`<span style="font-weight:600">${fmt(parseFloat(m.cost)||0)}</span>`,`<span class="badge ${m.paid==='Paid'?'badge-green':'badge-amber'}">${m.paid}</span>`,`<span style="color:var(--gray);font-size:12px">${m.notes||''}</span>`]);
+  reportTable('rpt-maint-view',['ID','Date','Property','Type','Vendor','Cost','Paid','Notes'],rows,'No maintenance records found.');
+  reportSummaryBar('rpt-maint-view',[{label:'Records',value:records.length},{label:'Total Cost',value:fmt(totalCost)},{label:'Unpaid Balance',value:fmt(unpaid)}]);
+}
+function runTenantMovement() {
+  const rows = [...appData.leases].sort((a,b)=>(a.leaseStart||'').localeCompare(b.leaseStart||'')).map(l=>[`<span style="font-size:11px;color:var(--gray)">${l.id}</span>`,l.tenantName,l.propertyAddress,l.leaseStart?fmtDate(l.leaseStart):'--',l.leaseEnd?fmtDate(l.leaseEnd):'--',`<span class="badge ${badgeClass(l.status)}">${l.status}</span>`]);
+  reportTable('rpt-move-view',['Lease ID','Tenant','Property','Move In','Move Out','Status'],rows,'No lease records found.');
+  reportSummaryBar('rpt-move-view',[{label:'Total Leases',value:appData.leases.length},{label:'Active / MTM',value:appData.leases.filter(l=>['Active','Month-to-Month'].includes(l.status)).length},{label:'Ended',value:appData.leases.filter(l=>l.status==='Ended').length}]);
+}
+
+function csvDL(filename, headers, rows) {
+  const lines=[headers.join(','),...rows.map(r=>r.map(c=>`"${String(c==null?'':c).replace(/"/g,'""')}"`).join(','))];
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'})); a.download=filename; a.click();
+}
+// ============================================================
+// INSTRUCTIONS POPUP
+// ============================================================
+function openInstructions() {
+  document.getElementById('modal-content').innerHTML = `
+    <h3 style="color:var(--dark);margin-bottom:4px">Rent Management Demo</h3>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">Built by <a href="https://www.oldnorthanalytics.com" target="_blank" style="color:var(--primary);font-weight:600">Old North Analytics</a></p>
+
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:16px">A custom-built, single-file web app that replaces spreadsheet-based rent tracking for small property managers. No server, no subscription, runs entirely in the browser. The full product includes data exports, backup and restore, and an Excel reference file integration. This demo is view and entry only.</p>
+
+    <div class="banner info" style="margin-bottom:16px;font-size:12px">All data in this demo is fictional and for demonstration purposes only.</div>
+
+    <p style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:8px">Getting started</p>
+    <ol style="font-size:13px;line-height:2;padding-left:20px;color:#374151;margin-bottom:16px">
+      <li>Click <strong>Load Sample Data</strong> to populate the app with fictional rental data.</li>
+      <li>Browse the <strong>Dashboard</strong> for live KPIs and a full rent roll.</li>
+      <li>Try <strong>Monthly Charges</strong> to pre-fill and post rent charges in bulk.</li>
+      <li>Use <strong>Payments</strong> to post a payment and watch balances update live.</li>
+      <li>Check the <strong>Ledger</strong> for a complete transaction log with filtering.</li>
+      <li>Run a report under <strong>Reports</strong> such as Arrears Aging or Tenant Statement.</li>
+    </ol>
+
+    <p style="font-size:12px;color:var(--gray)">The <strong>Undo</strong> button (top bar) reverses up to 5 actions per session.</p>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <a href="mailto:info@oldnorthanalytics.com" style="font-size:11px;color:var(--primary)">info@oldnorthanalytics.com</a>
+      <button class="btn btn-primary" onclick="closeModal()">Got it</button>
+    </div>
+  `;
+  openModal();
+}
+
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); document.getElementById('modal-content').innerHTML=''; }
+document.getElementById('modal-overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, isError) {
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=isError?'#c0392b':'#22493D';
+  el.style.display='block';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.style.display='none',3000);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+// Auto-show instructions on first visit
+if (!localStorage.getItem('ona_demo_welcomed')) {
+  localStorage.setItem('ona_demo_welcomed', '1');
+  openInstructions();
+}
+</script>
+</body>
+</html>

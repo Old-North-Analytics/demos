@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DispatchIQ | Old North Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --ona-dark:#22493D;--ona-mid:#537C6F;--ona-accent:#2e7d5e;--ona-light:#EAF6F2;--ona-border:#c8ddd8;
+  --bg:#f5f7f6;--surface:#fff;--surface2:#f0f4f2;--surface3:#e8efed;
+  --border:#d4e0dc;--border2:#bccfc9;--text:#1a2e26;--text-2:#4a6b5e;--text-3:#7a9e92;
+  --ca:#2e8b57;--cb:#2563eb;--cc:#d97706;--cd:#dc2626;--font:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100vh;overflow:hidden;font-family:var(--font);font-size:13px;background:var(--bg);color:var(--text);}
+
+/* TOPBAR */
+.topbar{height:50px;background:var(--ona-dark);display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0;z-index:200;}
+.tb-brand{font-size:15px;font-weight:700;color:#fff;}
+.tb-sub{font-size:11px;color:rgba(255,255,255,.4);margin-left:8px;}
+.tb-center{display:flex;align-items:center;gap:22px;}
+.tb-stat{display:flex;flex-direction:column;align-items:center;}
+.tb-sl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);}
+.tb-sv{font-size:14px;font-weight:700;color:#fff;line-height:1.2;}
+.tb-sv.g{color:#6ee7b7;}.tb-sv.b{color:#93c5fd;}
+.tb-div{width:1px;height:22px;background:rgba(255,255,255,.15);}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.instr-btn{font-size:11px;font-weight:600;color:rgba(255,255,255,.65);cursor:pointer;padding:4px 10px;border:1px solid rgba(255,255,255,.2);border-radius:3px;transition:all .15s;}
+.instr-btn:hover{color:#fff;border-color:rgba(255,255,255,.5);}
+.demo-pill{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.45);}
+
+/* LAYOUT */
+.app{display:flex;flex-direction:column;height:100vh;}
+.main{display:grid;grid-template-columns:272px 1fr 356px;flex:1;overflow:hidden;min-height:0;}
+.left-panel{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.right-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.phdr{padding:6px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.phdr-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);}
+.phdr-c{font-size:11px;font-weight:600;color:var(--ona-accent);}
+
+/* CONFIG */
+.cfg-bar{padding:9px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.cfg-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.cfg-row:last-child{margin-bottom:0;}
+.cfg-lbl{font-size:11px;color:var(--text-2);flex:1;font-weight:500;}
+.cfg-inp{width:54px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:13px;font-weight:700;text-align:center;padding:3px 4px;outline:none;border-radius:2px;}
+.cfg-inp:focus{border-color:var(--ona-mid);}
+.cfg-unit{font-size:11px;color:var(--text-3);}
+
+/* CREW CARDS */
+.crew-scroll{flex:1;overflow-y:auto;}
+.crew-card{border-bottom:1px solid var(--border);}
+.crew-hdr{padding:9px 12px;cursor:pointer;transition:background .12s;display:flex;flex-direction:column;gap:5px;}
+.crew-hdr:hover{background:var(--ona-light);}
+.crew-top{display:flex;align-items:center;gap:7px;}
+.crew-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.crew-nm{font-weight:700;font-size:12px;flex:1;color:var(--text);}
+.crew-ld{font-size:10px;color:var(--text-3);font-weight:400;}
+.crew-pct{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
+.skills{display:flex;flex-wrap:wrap;gap:3px;}
+.skill{font-size:9px;padding:2px 6px;background:var(--ona-light);border:1px solid var(--ona-border);color:var(--ona-dark);font-weight:500;border-radius:2px;}
+.load-row{display:flex;align-items:center;gap:7px;}
+.load-bg{flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;border-radius:2px;transition:width .5s;}
+.load-pct{font-size:10px;color:var(--text-3);width:26px;text-align:right;}
+
+/* DRAWER */
+.drawer{display:none;border-top:1px solid var(--border);background:var(--surface2);padding:10px 12px;}
+.drawer.open{display:block;}
+.drw-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px;}
+.exc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:11px;color:var(--text-2);}
+.exc-row:last-child{margin-bottom:0;}
+.exc-lbl{font-weight:500;flex:1;}
+.toggle{position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tsl{position:absolute;inset:0;background:var(--border2);border-radius:9px;cursor:pointer;transition:.2s;}
+.tsl:before{content:'';position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s;}
+.toggle input:checked+.tsl{background:var(--ona-accent);}
+.toggle input:checked+.tsl:before{transform:translateX(14px);}
+.exc-sel{background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:11px;padding:2px 6px;border-radius:2px;outline:none;cursor:pointer;}
+.jtype-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px;}
+.jtype-itm{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-2);}
+.jtype-itm input{accent-color:var(--ona-accent);}
+
+/* CENTER */
+.center{display:flex;flex-direction:column;overflow:hidden;}
+
+/* OBJECTIVES DRAG-TO-RANK */
+.obj-section{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 14px;flex-shrink:0;}
+.obj-top{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+.obj-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);flex:1;}
+.obj-hint{font-size:10px;color:var(--text-3);font-style:italic;}
+.run-btn{background:var(--ona-dark);border:none;color:#fff;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:7px 18px;cursor:pointer;border-radius:3px;transition:background .2s;white-space:nowrap;}
+.run-btn:hover{background:var(--ona-mid);}.run-btn.busy{opacity:.5;cursor:not-allowed;}
+.rank-list{list-style:none;display:flex;gap:5px;flex-wrap:wrap;}
+.rank-item{display:flex;align-items:center;gap:7px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;cursor:grab;user-select:none;transition:box-shadow .15s,border-color .15s;font-size:11px;}
+.rank-item:active{cursor:grabbing;box-shadow:0 4px 16px rgba(0,0,0,.12);border-color:var(--ona-mid);}
+.rank-item.drag-over{border-color:var(--ona-accent);background:var(--ona-light);}
+.rank-item.dragging{opacity:.4;}
+.rank-num{width:18px;height:18px;border-radius:50%;background:var(--ona-accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rank-name{font-weight:600;color:var(--text);}
+.rank-desc{font-size:10px;color:var(--text-3);}
+.drag-hdl{font-size:14px;color:var(--border2);margin-left:2px;}
+
+/* MAP */
+.map-wrap{flex:1;position:relative;overflow:hidden;min-height:0;}
+#map{width:100%;height:100%;}
+.map-ctrl{position:absolute;bottom:14px;left:14px;z-index:1000;background:var(--surface);border:1px solid var(--border);padding:10px 13px;min-width:240px;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.1);}
+.mc-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:flex;justify-content:space-between;margin-bottom:5px;}
+.mc-time{color:var(--ona-accent);font-size:13px;font-weight:700;}
+.mc-slider{width:100%;appearance:none;height:3px;background:var(--border2);outline:none;border-radius:2px;margin-bottom:7px;}
+.mc-slider::-webkit-slider-thumb{appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ona-accent);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.mc-btns{display:flex;gap:5px;}
+.mc-btn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text-2);font-size:9px;font-weight:600;padding:4px 2px;cursor:pointer;border-radius:2px;text-align:center;transition:all .12s;}
+.mc-btn:hover{border-color:var(--ona-mid);color:var(--ona-accent);background:var(--ona-light);}
+.map-legend{position:absolute;top:14px;right:14px;z-index:1000;background:var(--surface);border:1px solid var(--border);padding:8px 12px;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.ml-t{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:6px;}
+.ml-itm{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--text-2);margin-bottom:3px;font-weight:500;cursor:pointer;padding:2px 4px;border-radius:2px;transition:background .1s;}
+.ml-itm:hover{background:var(--ona-light);}
+.ml-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ml-arr{font-size:10px;color:var(--ona-accent);margin-left:auto;}
+
+/* TIMELINE */
+.timeline{background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;height:126px;}
+.tl-hdr{padding:5px 14px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between;}
+.tl-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);}
+.tl-body{padding:6px 14px;overflow-x:auto;height:calc(100% - 28px);}
+.tl-grid{min-width:700px;}
+.tl-axis{display:flex;margin-left:70px;margin-bottom:3px;}
+.tl-hr{font-size:9px;color:var(--text-3);flex:1;font-weight:500;}
+.tl-row{display:flex;align-items:center;margin-bottom:3px;height:18px;}
+.tl-crew-lbl{width:70px;font-size:10px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:4px;flex-shrink:0;cursor:pointer;}
+.tl-crew-lbl:hover{color:var(--ona-accent);}
+.tl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.tl-track{flex:1;height:16px;background:var(--surface3);border:1px solid var(--border);position:relative;overflow:hidden;border-radius:2px;cursor:pointer;}
+.tl-track:hover{border-color:var(--ona-mid);}
+.tl-blk{position:absolute;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;overflow:hidden;white-space:nowrap;font-weight:600;}
+.tl-drive{opacity:.15!important;}
+
+/* RIGHT PANEL */
+.tab-bar{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab-btn{flex:1;padding:8px 6px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;transition:all .12s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font);}
+.tab-btn.active{color:var(--ona-accent);border-bottom-color:var(--ona-accent);background:var(--surface);}
+.tab-content{flex:1;overflow:hidden;display:none;flex-direction:column;}
+.tab-content.active{display:flex;}
+.margin-bar{padding:7px 12px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.margin-lbl{font-size:11px;font-weight:500;color:var(--text-2);flex:1;}
+.margin-inp{width:46px;background:var(--surface);border:1px solid var(--border2);color:var(--ona-accent);font-family:var(--font);font-size:13px;font-weight:700;text-align:center;padding:2px 4px;outline:none;border-radius:2px;}
+.margin-inp:focus{border-color:var(--ona-mid);}
+.jl-hdr{display:grid;grid-template-columns:18px 1fr 60px 54px 50px;padding:5px 10px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);flex-shrink:0;position:sticky;top:0;z-index:10;}
+.jl-scroll{flex:1;overflow-y:auto;}
+.jl-row{display:grid;grid-template-columns:18px 1fr 60px 54px 50px;padding:6px 10px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s;}
+.jl-row:hover{background:var(--ona-light);}
+.jl-pri{width:6px;height:6px;border-radius:50%;justify-self:center;}
+.jl-nm{font-size:11px;font-weight:600;color:var(--text);line-height:1.2;}
+.jl-cl{font-size:9px;color:var(--text-3);}
+.jl-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;white-space:nowrap;display:inline-block;}
+.jl-rev{font-size:12px;font-weight:700;color:var(--text);text-align:right;}
+.jl-mar{font-size:11px;font-weight:600;text-align:right;color:var(--ca);}
+.jl-footer{padding:7px 10px;background:var(--surface2);border-top:2px solid var(--border);display:grid;grid-template-columns:18px 1fr 60px 54px 50px;align-items:center;flex-shrink:0;}
+.jl-ft-lbl{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-2);grid-column:1/4;}
+.jl-ft-rev{font-size:13px;font-weight:700;color:var(--ona-accent);text-align:right;}
+.jl-ft-mar{font-size:12px;font-weight:700;color:var(--ca);text-align:right;}
+.r-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--text-3);padding:20px;}
+.r-empty-icon{font-size:32px;opacity:.2;margin-bottom:12px;}
+.r-empty-txt{font-size:11px;line-height:1.8;}
+
+/* EXEC + REASONING */
+.exec-sum{background:var(--surface2);border-bottom:1px solid var(--border);padding:11px 13px;}
+.exec-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:7px;}
+.exec-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px;}
+.exec-stat{background:var(--surface);border:1px solid var(--border);padding:7px 9px;border-radius:3px;}
+.exec-val{font-size:16px;font-weight:700;color:var(--ona-accent);line-height:1;margin-bottom:2px;}
+.exec-lbl{font-size:10px;color:var(--text-3);}
+.exec-proj{background:var(--ona-light);border:1px solid var(--ona-border);border-left:3px solid var(--ona-accent);padding:8px 10px;margin-bottom:6px;border-radius:0 3px 3px 0;}
+.exec-pt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ona-accent);margin-bottom:4px;}
+.exec-pr{display:flex;justify-content:space-between;font-size:11px;color:var(--text-2);margin-bottom:2px;}
+.exec-pv{font-weight:700;color:var(--text);}.exec-pv.hi{color:var(--ca);}
+.exec-ins{font-size:11px;color:var(--text-2);line-height:1.5;padding:7px 9px;background:var(--surface);border:1px solid var(--border);border-radius:3px;}
+.asgn-blk{border-bottom:1px solid var(--border);padding:9px 12px;}
+.asgn-hdr{display:flex;align-items:flex-start;gap:6px;margin-bottom:6px;}
+.asgn-badge{font-size:9px;font-weight:700;padding:2px 7px;white-space:nowrap;flex-shrink:0;margin-top:2px;border-radius:10px;}
+.asgn-nm{font-weight:600;font-size:12px;color:var(--text);line-height:1.3;}
+.asgn-meta{font-size:10px;color:var(--text-3);margin-top:1px;}
+.reasons{list-style:none;}
+.reasons li{display:flex;gap:6px;padding:3px 0;font-size:11px;color:var(--text-2);line-height:1.4;border-bottom:1px solid var(--border);}
+.reasons li:last-child{border:none;}
+.rb{color:var(--ona-accent);flex-shrink:0;font-weight:700;margin-top:1px;}
+
+/* THINKING */
+.thinking{display:none;position:fixed;inset:0;background:rgba(240,244,242,.93);z-index:9000;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.thinking.on{display:flex;}
+.th-title{font-size:15px;font-weight:700;color:var(--ona-dark);}
+.th-dots{display:flex;gap:7px;}
+.t-dot{width:7px;height:7px;border-radius:50%;background:var(--ona-accent);animation:tdot 1.2s ease-in-out infinite;}
+.t-dot:nth-child(2){animation-delay:.2s;}.t-dot:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+.th-steps{font-size:11px;color:var(--text-3);text-align:center;line-height:2.1;}
+.ts{opacity:0;transition:opacity .3s;}.ts.on{opacity:1;color:var(--text-2);}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(26,46,38,.5);z-index:8000;align-items:center;justify-content:center;}
+.modal-ov.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.18);max-width:540px;width:90%;max-height:85vh;overflow-y:auto;}
+.modal.sm{max-width:490px;}
+.modal-hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:700;color:var(--text);}
+.modal-x{font-size:20px;color:var(--text-3);cursor:pointer;line-height:1;background:none;border:none;font-family:var(--font);}
+.modal-x:hover{color:var(--text);}
+.modal-body{padding:18px 20px;}
+
+/* WELCOME */
+.w-step{display:flex;gap:13px;margin-bottom:16px;}
+.w-step:last-child{margin-bottom:0;}
+.w-num{width:26px;height:26px;border-radius:50%;background:var(--ona-dark);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.w-t{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.w-d{font-size:12px;color:var(--text-2);line-height:1.6;}
+.w-d strong{color:var(--ona-dark);}
+.w-footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;}
+.btn-primary{background:var(--ona-dark);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;padding:9px 22px;border:none;border-radius:3px;cursor:pointer;}
+.btn-primary:hover{background:var(--ona-mid);}
+
+/* SCHEDULE MODAL */
+.sch-crew-hdr{display:flex;align-items:center;gap:10px;padding:10px 0 14px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.sch-crew-dot{width:12px;height:12px;border-radius:50%;}
+.sch-crew-nm{font-size:14px;font-weight:700;color:var(--text);}
+.sch-crew-ld{font-size:11px;color:var(--text-3);}
+.sch-stop{display:flex;gap:12px;}
+.sch-line{display:flex;flex-direction:column;align-items:center;width:20px;flex-shrink:0;}
+.sch-dot{width:10px;height:10px;border-radius:50%;border:2px solid;flex-shrink:0;}
+.sch-connector{flex:1;width:2px;min-height:24px;background:var(--border);margin:2px 0;}
+.sch-content{flex:1;padding-bottom:14px;}
+.sch-time{font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:2px;}
+.sch-nm{font-size:12px;font-weight:600;color:var(--text);}
+.sch-cl{font-size:10px;color:var(--text-3);margin-bottom:3px;}
+.sch-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text-2);}
+.sch-drive{display:flex;align-items:center;gap:6px;padding:4px 0 4px 32px;font-size:10px;color:var(--text-3);font-style:italic;}
+.sch-sum{margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.sch-sv{font-size:16px;font-weight:700;color:var(--ona-accent);}
+.sch-sl{font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;}
+
+.rank-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:var(--ona-mid);border-radius:50%;font-size:9px;font-weight:700;color:#fff;cursor:help;flex-shrink:0;position:relative;}
+.rank-tip:hover::after{content:attr(data-tip);position:absolute;left:18px;top:50%;transform:translateY(-50%);background:#1a2e26;color:#fff;padding:7px 11px;border-radius:4px;font-size:11px;width:230px;z-index:500;white-space:normal;line-height:1.5;font-weight:400;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+.cfg-tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:var(--border2);border-radius:50%;font-size:9px;font-weight:700;color:var(--text-3);cursor:help;flex-shrink:0;position:relative;margin-left:4px;}
+.cfg-tip:hover::after{content:attr(data-tip);position:absolute;left:18px;top:50%;transform:translateY(-50%);background:#1a2e26;color:#fff;padding:7px 11px;border-radius:4px;font-size:11px;width:230px;z-index:500;white-space:normal;line-height:1.5;font-weight:400;box-shadow:0 4px 16px rgba(0,0,0,.25);}
+.mc-play{flex:1;background:var(--ona-accent);border:none;color:#fff;font-family:var(--font);font-size:11px;font-weight:700;padding:4px 2px;cursor:pointer;border-radius:2px;text-align:center;transition:all .12s;}
+.mc-play:hover{background:var(--ona-dark);}
+.mc-play.playing{background:#dc2626;}
+.mc-play.playing:hover{background:#b91c1c;}
+::-webkit-scrollbar-track{background:var(--surface2);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--ona-mid);}
+.leaflet-container{background:#e8eeea!important;font-family:var(--font)!important;}
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:4px!important;box-shadow:0 4px 20px rgba(0,0,0,.12)!important;}
+.leaflet-popup-tip{background:var(--surface)!important;}
+.leaflet-popup-content{font-family:var(--font)!important;font-size:12px!important;margin:10px 13px!important;}
+.pop-nm{font-weight:700;font-size:13px;margin-bottom:2px;}
+.pop-crew{font-size:10px;font-weight:600;margin-bottom:5px;}
+.pop-row{display:flex;justify-content:space-between;gap:14px;font-size:11px;color:var(--text-2);margin-bottom:2px;}
+</style>
+</head>
+<body>
+
+<!-- WELCOME MODAL -->
+<div class="modal-ov open" id="welcomeModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Welcome to DispatchIQ</div>
+      <button class="modal-x" onclick="closeWelcome()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="w-step"><div class="w-num">1</div><div><div class="w-t">Set your priorities</div><div class="w-d">Drag the five <strong>optimization objectives</strong> into the order that matters most to your business. Rank 1 carries the most weight; rank 5 is a tiebreaker. Think about what actually drives your profit.</div></div></div>
+      <div class="w-step"><div class="w-num">2</div><div><div class="w-t">Configure each crew</div><div class="w-d">Click any <strong>crew card</strong> on the left to expand crew settings: overtime allowed, max jobs today, delayed start, and job type restrictions. These feed directly into the optimizer as hard constraints.</div></div></div>
+      <div class="w-step"><div class="w-num">3</div><div><div class="w-t">Set job count and growth assumption</div><div class="w-d">Use <strong>Jobs per Day</strong> (20-40) to control schedule density. <strong>Annual Growth Rate</strong> adjusts the revenue projection in the right panel.</div></div></div>
+      <div class="w-step"><div class="w-num">4</div><div><div class="w-t">Run the optimization</div><div class="w-d">Click <strong>Run Optimization</strong>. The scheduler assigns every job to the best available crew based on your ranked priorities and crew constraints. Routes are drawn on the map following actual roads where available.</div></div></div>
+      <div class="w-step"><div class="w-num">5</div><div><div class="w-t">Review crew schedules</div><div class="w-d">After optimization, click any <strong>crew name in the timeline</strong>, a <strong>crew card</strong>, or a crew in the <strong>map legend</strong> to see their full day: every stop in order, drive time between jobs, and daily revenue totals.</div></div></div>
+      <div class="w-footer"><button class="btn-primary" onclick="closeWelcome()">Get Started</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- CREW SCHEDULE MODAL -->
+<div class="modal-ov" id="schModal">
+  <div class="modal sm">
+    <div class="modal-hdr">
+      <div class="modal-title" id="schTitle">Crew Schedule</div>
+      <button class="modal-x" onclick="closeSch()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="schBody"></div>
+  </div>
+</div>
+
+<!-- THINKING -->
+<div class="thinking" id="thinking">
+  <div class="th-title">Optimizing Schedule</div>
+  <div class="th-dots"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div>
+  <div class="th-steps">
+    <div class="ts" id="ts1">Applying crew constraints and exceptions...</div>
+    <div class="ts" id="ts2">Scoring job-crew pairings against ranked priorities...</div>
+    <div class="ts" id="ts3">Sequencing routes to minimize transit...</div>
+    <div class="ts" id="ts4">Fetching road-following routes...</div>
+    <div class="ts" id="ts5">Validating time windows and skill constraints...</div>
+    <div class="ts" id="ts6">Computing annual revenue projections...</div>
+    <div class="ts" id="ts7">Generating per-assignment reasoning...</div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div><span class="tb-brand">Old North Analytics</span><span class="tb-sub">DispatchIQ</span></div>
+    <div class="tb-center">
+      <div class="tb-stat"><div class="tb-sl">Date</div><div class="tb-sv" id="tbDate">--</div></div>
+      <div class="tb-div"></div>
+      <div class="tb-stat"><div class="tb-sl">Crews</div><div class="tb-sv">4</div></div>
+      <div class="tb-div"></div>
+      <div class="tb-stat"><div class="tb-sl">Jobs</div><div class="tb-sv" id="tbJobs">--</div></div>
+      <div class="tb-div"></div>
+      <div class="tb-stat"><div class="tb-sl">Assigned</div><div class="tb-sv g" id="tbAssigned">0</div></div>
+      <div class="tb-div"></div>
+      <div class="tb-stat"><div class="tb-sl">Daily Rev.</div><div class="tb-sv b" id="tbRev">--</div></div>
+    </div>
+    <div class="tb-right">
+      <span class="instr-btn" onclick="openWelcome()">Instructions</span>
+      <span class="instr-btn" id="exportBtn" onclick="exportPDF()" style="display:none">Export PDF</span>
+      <span class="demo-pill">Demo</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- LEFT -->
+    <div class="left-panel">
+      <div class="phdr"><span class="phdr-t">Schedule Config</span></div>
+      <div class="cfg-bar">
+        <div class="cfg-row"><span class="cfg-lbl">Jobs per Day</span><input class="cfg-inp" type="number" id="jobCount" min="20" max="40" value="30"><span class="cfg-unit">of 40</span></div>
+        <div class="cfg-row"><span class="cfg-lbl">Annual Growth Rate<span class="cfg-tip" data-tip="Used to project next-year revenue in the AI Reasoning panel. It compounds this year's estimated annual revenue by this percentage. Example: 8% means projected revenue = (daily rev x 250 days x retention) x 1.08.">?</span></span><input class="cfg-inp" type="number" id="growthRate" min="0" max="50" value="8"><span class="cfg-unit">%/yr</span></div>
+      </div>
+      <div class="phdr"><span class="phdr-t">Crew Roster</span><span class="phdr-c">4 Active</span></div>
+      <div class="crew-scroll" id="crewList"></div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center">
+      <div class="obj-section">
+        <div class="obj-top">
+          <span class="obj-lbl">Optimization Priorities</span>
+          <span class="obj-hint">Drag to rank &mdash; #1 has the most influence</span>
+          <button class="run-btn" id="runBtn" onclick="runOpt()">Run Optimization</button>
+        </div>
+        <ul class="rank-list" id="rankList"></ul>
+      </div>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-legend" id="mapLegend" style="display:none">
+          <div class="ml-t">Crews &mdash; click to view schedule</div>
+          <div class="ml-itm" onclick="openSch('alpha')"><div class="ml-dot" style="background:var(--ca)"></div>Crew Alpha<span class="ml-arr">&#9654;</span></div>
+          <div class="ml-itm" onclick="openSch('bravo')"><div class="ml-dot" style="background:var(--cb)"></div>Crew Bravo<span class="ml-arr">&#9654;</span></div>
+          <div class="ml-itm" onclick="openSch('charlie')"><div class="ml-dot" style="background:var(--cc)"></div>Crew Charlie<span class="ml-arr">&#9654;</span></div>
+          <div class="ml-itm" onclick="openSch('delta')"><div class="ml-dot" style="background:var(--cd)"></div>Crew Delta<span class="ml-arr">&#9654;</span></div>
+        </div>
+        <div class="map-ctrl" id="mapCtrl" style="display:none">
+          <div class="mc-lbl"><span>Time of Day</span><span class="mc-time" id="mcTime">7:00 AM</span></div>
+          <input type="range" class="mc-slider" id="mcSlider" min="0" max="52" value="0" oninput="onSlider(this.value)">
+          <div class="mc-btns">
+            <div class="mc-btn" onclick="stepT(-1)">- 15m</div>
+            <div class="mc-play" id="playBtn" onclick="togglePlay()">&#9654; Play</div>
+            <div class="mc-btn" onclick="stepT(1)">+ 15m</div>
+            <div class="mc-btn" onclick="resetT()">Reset</div>
+          </div>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="tl-hdr">
+          <span class="tl-t">Daily Timeline &mdash; click crew name to view schedule</span>
+          <span class="phdr-c" id="tlLbl">Run optimization to populate</span>
+        </div>
+        <div class="tl-body"><div class="tl-grid">
+          <div class="tl-axis" id="tlAxis"></div>
+          <div id="tlRows"></div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-panel">
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-jobs" onclick="switchTab('jobs')">Job List</button>
+        <button class="tab-btn" id="tab-ai" onclick="switchTab('ai')">AI Reasoning</button>
+      </div>
+      <div class="tab-content active" id="content-jobs">
+        <div class="margin-bar">
+          <span class="margin-lbl">Gross Margin %</span>
+          <input class="margin-inp" type="number" id="marginPct" min="0" max="100" value="40" oninput="refreshJobList()">
+          <span style="font-size:11px;color:var(--text-3)">%</span>
+        </div>
+        <div class="jl-hdr"><span></span><span>Job</span><span>Crew</span><span style="text-align:right">Revenue</span><span style="text-align:right">Margin</span></div>
+        <div class="jl-scroll" id="jobScroll"><div class="r-empty"><div class="r-empty-icon">&#9783;</div><div class="r-empty-txt">Run optimization to<br>populate the job list.</div></div></div>
+        <div class="jl-footer" id="jlFooter" style="display:none">
+          <span class="jl-ft-lbl">Total</span>
+          <span class="jl-ft-rev" id="ftRev">--</span>
+          <span class="jl-ft-mar" id="ftMar">--</span>
+        </div>
+      </div>
+      <div class="tab-content" id="content-ai">
+        <div class="r-empty" id="rEmpty"><div class="r-empty-icon">&#9671;</div><div class="r-empty-txt">Rank priorities, configure<br>crew settings, then run the optimizer.</div></div>
+        <div id="reasoning" style="display:none;overflow-y:auto;flex:1;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────
+const CREWS=[
+  {id:'alpha',  name:'Crew Alpha',  lead:'Marcus T.',color:'#2e8b57',skills:['HVAC','Electrical','Inspection'],         startLat:35.7796,startLng:-78.6382},
+  {id:'bravo',  name:'Crew Bravo',  lead:'Sandra K.',color:'#2563eb',skills:['Plumbing','General Maintenance','Inspection'],startLat:35.7596,startLng:-78.5982},
+  {id:'charlie',name:'Crew Charlie',lead:'Devon R.', color:'#d97706',skills:['HVAC','Electrical','General Maintenance'],  startLat:35.7396,startLng:-78.6582},
+  {id:'delta',  name:'Crew Delta',  lead:'Priya N.', color:'#dc2626',skills:['Plumbing','Inspection','Safety Audit'],     startLat:35.8096,startLng:-78.5582}
+];
+const ALL_TYPES=['HVAC','Electrical','Plumbing','General Maintenance','Inspection','Safety Audit'];
+const CREW_EX={};
+CREWS.forEach(c=>{CREW_EX[c.id]={overtime:false,maxJobs:6,startOffset:0,avoidTypes:[]};});
+
+const JOBS=[
+  {id:'J01',name:'HVAC Annual Inspection',      client:'Ridgewood Office Park',       lat:35.8296,lng:-78.6282,skills:['HVAC','Inspection'],                     dur:90, priority:'high',  val:480},
+  {id:'J02',name:'Electrical Panel Upgrade',    client:'Brentwood Retail',            lat:35.7650,lng:-78.5800,skills:['Electrical'],                            dur:120,priority:'high',  val:750},
+  {id:'J03',name:'Pipe Leak Repair',            client:'Cameron Village Apts',        lat:35.7920,lng:-78.6450,skills:['Plumbing'],                              dur:60, priority:'high',  val:290},
+  {id:'J04',name:'HVAC Filter Replacement',     client:'Crabtree Valley Medical',     lat:35.8350,lng:-78.6800,skills:['HVAC'],                                  dur:45, priority:'medium',val:195},
+  {id:'J05',name:'Safety Compliance Audit',     client:'Wake County Warehouse',       lat:35.7350,lng:-78.5600,skills:['Safety Audit','Inspection'],             dur:150,priority:'medium',val:620},
+  {id:'J06',name:'General Maintenance Walk',    client:'Stonehenge Commons HOA',      lat:35.8150,lng:-78.7200,skills:['General Maintenance'],                   dur:75, priority:'low',   val:180},
+  {id:'J07',name:'Electrical Fault Diagnosis',  client:'North Hills Mall',            lat:35.8480,lng:-78.6100,skills:['Electrical','Inspection'],               dur:90, priority:'high',  val:560},
+  {id:'J08',name:'Plumbing Backflow Test',      client:'Glenwood Ave Restaurant Row', lat:35.8020,lng:-78.6600,skills:['Plumbing','Inspection'],                dur:60, priority:'medium',val:240},
+  {id:'J09',name:'HVAC Emergency Call',         client:'Quorum Center Office',        lat:35.7750,lng:-78.7000,skills:['HVAC'],                                  dur:120,priority:'high',  val:890},
+  {id:'J10',name:'Routine Maintenance Insp.',   client:'Triangle Town Center',        lat:35.8600,lng:-78.5650,skills:['General Maintenance','Inspection'],      dur:90, priority:'low',   val:310},
+  {id:'J11',name:'Electrical Outlet Install',   client:'Morrisville Tech Campus',     lat:35.8180,lng:-78.7950,skills:['Electrical'],                           dur:60, priority:'medium',val:320},
+  {id:'J12',name:'Water Heater Replacement',    client:'Cary Park Condos',            lat:35.7840,lng:-78.7780,skills:['Plumbing'],                             dur:120,priority:'high',  val:680},
+  {id:'J13',name:'HVAC Duct Sealing',           client:'RTP HQ',                      lat:35.8980,lng:-78.8650,skills:['HVAC'],                                 dur:180,priority:'medium',val:540},
+  {id:'J14',name:'Fire Suppression Inspection', client:'Durham County Fire District', lat:35.9860,lng:-78.9220,skills:['Safety Audit','Inspection'],            dur:90, priority:'high',  val:430},
+  {id:'J15',name:'Circuit Breaker Replacement', client:'Apex Business Center',        lat:35.7320,lng:-78.8500,skills:['Electrical'],                           dur:75, priority:'medium',val:380},
+  {id:'J16',name:'Sewer Line Inspection',       client:'Holly Springs HOA',           lat:35.6510,lng:-78.8330,skills:['Plumbing','Inspection'],                dur:90, priority:'high',  val:520},
+  {id:'J17',name:'HVAC Preventive Maint.',      client:'Fuquay-Varina Medical Ctr',   lat:35.5970,lng:-78.7960,skills:['HVAC'],                                 dur:90, priority:'medium',val:310},
+  {id:'J18',name:'General Repairs Walkaround',  client:'Garner Business Park',        lat:35.7110,lng:-78.6140,skills:['General Maintenance'],                  dur:60, priority:'low',   val:160},
+  {id:'J19',name:'Electrical Safety Insp.',     client:'Knightdale Data Center',      lat:35.7830,lng:-78.4850,skills:['Electrical','Safety Audit'],            dur:120,priority:'high',  val:640},
+  {id:'J20',name:'Backflow Preventer Install',  client:'Wendell Industrial Park',     lat:35.7720,lng:-78.3690,skills:['Plumbing'],                            dur:90, priority:'medium',val:420},
+  {id:'J21',name:'HVAC Coolant Recharge',       client:'Rolesville Commerce Park',    lat:35.9220,lng:-78.4580,skills:['HVAC'],                                 dur:60, priority:'medium',val:280},
+  {id:'J22',name:'Wiring Inspection',           client:'Wake Forest Tech Hub',        lat:35.9780,lng:-78.5090,skills:['Electrical','Inspection'],              dur:75, priority:'low',   val:230},
+  {id:'J23',name:'Drain Cleaning Service',      client:'Zebulon Distribution Ctr',   lat:35.8240,lng:-78.3160,skills:['Plumbing'],                            dur:60, priority:'medium',val:195},
+  {id:'J24',name:'Safety Equipment Audit',      client:'Angier Manufacturing',        lat:35.5140,lng:-78.7370,skills:['Safety Audit'],                         dur:120,priority:'high',  val:580},
+  {id:'J25',name:'Generator Inspection',        client:'Smithfield Commercial Hub',   lat:35.5090,lng:-78.3380,skills:['Electrical','Inspection'],              dur:90, priority:'medium',val:390},
+  {id:'J26',name:'AC Coil Cleaning',            client:'Selma Shopping Center',       lat:35.5390,lng:-78.2890,skills:['HVAC'],                                 dur:60, priority:'low',   val:175},
+  {id:'J27',name:'Boiler Safety Check',         client:'Smithfield Industrial Park',  lat:35.5020,lng:-78.3420,skills:['Safety Audit','Inspection'],           dur:90, priority:'high',  val:460},
+  {id:'J28',name:'Pipe Insulation Install',     client:'Johnston County Offices',     lat:35.5130,lng:-78.3300,skills:['Plumbing'],                            dur:120,priority:'medium',val:360},
+  {id:'J29',name:'Electrical Panel Survey',     client:'Benson Business Park',        lat:35.3810,lng:-78.5460,skills:['Electrical'],                          dur:75, priority:'low',   val:280},
+  {id:'J30',name:'HVAC Zoning Install',         client:'Dunn Retail Center',          lat:35.3060,lng:-78.6100,skills:['HVAC'],                                 dur:180,priority:'medium',val:720},
+  {id:'J31',name:'Sprinkler System Insp.',      client:'Lillington Town Hall',        lat:35.3970,lng:-78.8150,skills:['Safety Audit','Inspection'],           dur:90, priority:'high',  val:410},
+  {id:'J32',name:'Hot Water System Check',      client:'Fuquay Plaza HOA',            lat:35.5830,lng:-78.8010,skills:['Plumbing'],                            dur:60, priority:'medium',val:210},
+  {id:'J33',name:'Generator Hookup',            client:'Apex Emergency Services',     lat:35.7210,lng:-78.8590,skills:['Electrical'],                          dur:120,priority:'high',  val:760},
+  {id:'J34',name:'HVAC System Replacement',     client:'Cary Medical Office Park',    lat:35.7910,lng:-78.7820,skills:['HVAC'],                                 dur:240,priority:'high',  val:1200},
+  {id:'J35',name:'Sump Pump Install',           client:'Clayton Residential Dev',     lat:35.6510,lng:-78.4580,skills:['Plumbing'],                            dur:90, priority:'medium',val:340},
+  {id:'J36',name:'Fire Panel Inspection',       client:'Knightdale Business Suites',  lat:35.7930,lng:-78.4910,skills:['Safety Audit'],                        dur:60, priority:'medium',val:250},
+  {id:'J37',name:'Data Center Cooling Survey',  client:'RTP Server Farm',             lat:35.8930,lng:-78.8600,skills:['HVAC','Electrical'],                   dur:120,priority:'high',  val:880},
+  {id:'J38',name:'General Maintenance Sweep',   client:'Garner Industrial Row',       lat:35.6990,lng:-78.6120,skills:['General Maintenance'],                 dur:75, priority:'low',   val:155},
+  {id:'J39',name:'Emergency Pipe Burst',        client:'Morrisville Apts',            lat:35.8290,lng:-78.8340,skills:['Plumbing'],                            dur:90, priority:'high',  val:620},
+  {id:'J40',name:'Comprehensive Facility Audit',client:'Durham Tech Park',            lat:35.9980,lng:-78.9340,skills:['Safety Audit','Inspection','General Maintenance'],dur:180,priority:'high',val:950}
+];
+
+const OBJS=[
+  {id:'meet_windows',  name:'Honor client time windows', desc:'Never miss a scheduled arrival window',       tooltip:'Penalizes any assignment that risks finishing past the shift end. A high rank here keeps your schedule reliable and reduces rescheduling costs.'},
+  {id:'skill_match',   name:'Send the right specialist',  desc:'Only assign crews with exact required skills', tooltip:'Rewards assigning a crew whose skills precisely match the job. High rank improves first-time fix rates and reduces callbacks.'},
+  {id:'high_value',    name:'Prioritize high-value jobs', desc:'Protect revenue by scheduling big jobs first',  tooltip:'Sorts scheduling priority toward your highest-revenue jobs. High rank protects daily revenue even if some low-value jobs go unscheduled.'},
+  {id:'minimize_drive',name:'Minimize drive time',        desc:'Keep crews close to their next job',           tooltip:'Scores assignments lower when the crew is far away. High rank reduces fuel cost and wasted hours between jobs.'},
+  {id:'balance',       name:'Keep crews equally busy',    desc:'Distribute workload evenly across all crews',  tooltip:'Rewards assigning to under-utilized crews. High rank spreads wear, overtime risk, and earnings evenly across the team.'},
+  {id:'cluster_jobs',  name:'Group nearby jobs together', desc:'Keep each crew in a tight geographic zone',    tooltip:'Rewards keeping consecutive jobs close together. High rank reduces total miles driven per crew and simplifies end-of-day routing.'}
+];
+
+// ── STATE ─────────────────────────────────────────────────────
+let assignments=[], activeJobs=[];
+let rankOrder=OBJS.map(o=>o.id);
+let map, jMarkers=[], rLayers=[], hLayers=[];
+let sliderStep=0;
+let routeGeoms={};  // stores road-following coords per crew: {crewId: [[lat,lng],...]}
+let crewStopTimes={}; // cumulative times along route for interpolation: {crewId: [{lat,lng,time},...]}
+let playInterval=null, isPlaying=false;
+const WS=7*60, WE=20*60, STEPS=52;
+const PC={high:'#dc2626',medium:'#d97706',low:'#2e8b57'};
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  document.getElementById('tbDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById('tbJobs').textContent='30';
+  document.getElementById('jobCount').addEventListener('input',e=>document.getElementById('tbJobs').textContent=e.target.value);
+  renderObjs(); renderCrews(); initMap(); buildAxis();
+}
+
+// ── MODALS ────────────────────────────────────────────────────
+function closeWelcome(){document.getElementById('welcomeModal').classList.remove('open');}
+function openWelcome(){document.getElementById('welcomeModal').classList.add('open');}
+function closeSch(){document.getElementById('schModal').classList.remove('open');}
+
+function openSch(cid){
+  if(!assignments.length){alert('Run the optimizer first.');return;}
+  const crew=CREWS.find(c=>c.id===cid);
+  const asns=assignments.filter(a=>a.crewId===cid).sort((a,b)=>a.startTime-b.startTime);
+  if(!asns.length){alert(`${crew.name} has no assigned jobs today.`);return;}
+  const totRev=asns.reduce((s,a)=>s+a.job.val,0);
+  const totMins=asns.reduce((s,a)=>s+a.job.dur,0);
+  let html=`<div class="sch-crew-hdr"><div class="sch-crew-dot" style="background:${crew.color}"></div><div><div class="sch-crew-nm">${crew.name}</div><div class="sch-crew-ld">${crew.lead}</div></div></div>`;
+  asns.forEach((a,i)=>{
+    const last=i===asns.length-1;
+    html+=`<div class="sch-stop">
+      <div class="sch-line"><div class="sch-dot" style="border-color:${crew.color};background:${i===0?crew.color:'#fff'}"></div>${!last?'<div class="sch-connector"></div>':''}</div>
+      <div class="sch-content">
+        <div class="sch-time">${mt(a.startTime)} &mdash; ${mt(a.startTime+a.job.dur)}</div>
+        <div class="sch-nm">${a.job.name}</div>
+        <div class="sch-cl">${a.job.client}</div>
+        <div class="sch-meta"><span>${a.job.dur} min</span><span>$${a.job.val.toLocaleString()}</span><span style="color:${PC[a.job.priority]}">${a.job.priority}</span><span>${a.job.skills.join(', ')}</span></div>
+      </div></div>
+    ${!last&&asns[i+1]?`<div class="sch-drive"><span style="color:var(--border2)">&#8595;</span>Drive to next stop &mdash; approx. ${asns[i+1].travelMins||'?'} min</div>`:''}`;
+  });
+  html+=`<div class="sch-sum"><div style="text-align:center"><div class="sch-sv">${asns.length}</div><div class="sch-sl">Jobs</div></div><div style="text-align:center"><div class="sch-sv">$${totRev.toLocaleString()}</div><div class="sch-sl">Revenue</div></div><div style="text-align:center"><div class="sch-sv">${Math.floor(totMins/60)}h ${totMins%60}m</div><div class="sch-sl">Work Time</div></div></div>`;
+  document.getElementById('schTitle').textContent=`${crew.name} \u2014 ${crew.lead}`;
+  document.getElementById('schBody').innerHTML=html;
+  document.getElementById('schModal').classList.add('open');
+}
+
+// ── DRAG-TO-RANK ──────────────────────────────────────────────
+function renderObjs(){
+  document.getElementById('rankList').innerHTML=rankOrder.map((id,i)=>{
+    const o=OBJS.find(x=>x.id===id);
+    return `<li class="rank-item" draggable="true" data-id="${id}" ondragstart="ds(event)" ondragover="dov(event)" ondrop="ddr(event)" ondragend="de(event)">
+      <div class="rank-num">${i+1}</div>
+      <div style="flex:1"><div style="display:flex;align-items:center;gap:4px"><div class="rank-name">${o.name}</div><span class="rank-tip" data-tip="${o.tooltip}">?</span></div><div class="rank-desc">${o.desc}</div></div>
+      <span class="drag-hdl">&#8597;</span></li>`;
+  }).join('');
+}
+let dragId=null;
+function ds(e){dragId=e.currentTarget.dataset.id;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function dov(e){e.preventDefault();e.dataTransfer.dropEffect='move';e.currentTarget.classList.add('drag-over');}
+function de(e){document.querySelectorAll('.rank-item').forEach(el=>el.classList.remove('dragging','drag-over'));}
+function ddr(e){
+  e.preventDefault();
+  const tid=e.currentTarget.dataset.id;
+  if(dragId&&dragId!==tid){const si=rankOrder.indexOf(dragId),ti=rankOrder.indexOf(tid);rankOrder.splice(si,1);rankOrder.splice(ti,0,dragId);renderObjs();}
+}
+function getW(){const wts=[100,75,55,35,20,10],w={};rankOrder.forEach((id,i)=>{w[id]=wts[i]||10;});return w;}
+
+// ── CREW RENDER + DRAWERS ─────────────────────────────────────
+function renderCrews(){
+  document.getElementById('crewList').innerHTML=CREWS.map(c=>{
+    const asns=assignments.filter(a=>a.crewId===c.id);
+    const mins=asns.reduce((s,a)=>s+a.job.dur,0);
+    const util=Math.min(100,Math.round(mins/480*100));
+    const ex=CREW_EX[c.id];
+    return `<div class="crew-card" id="card_${c.id}">
+      <div class="crew-hdr" onclick="toggleDrw('${c.id}')">
+        <div class="crew-top"><div class="crew-dot" style="background:${c.color}"></div><div class="crew-nm">${c.name} <span class="crew-ld">&#8212; ${c.lead}</span></div><div class="crew-pct" style="background:${c.color}18;color:${c.color}">${util}%</div></div>
+        <div class="skills">${c.skills.map(s=>`<span class="skill">${s}</span>`).join('')}</div>
+        <div class="load-row"><div class="load-bg"><div class="load-fill" style="width:${util}%;background:${c.color}"></div></div><div class="load-pct">${Math.round(mins/60)}h</div></div>
+      </div>
+      <div class="drawer" id="drw_${c.id}">
+        <div class="drw-t">Crew Exceptions &amp; Constraints</div>
+        <div class="exc-row"><span class="exc-lbl">Overtime allowed</span><label class="toggle"><input type="checkbox" id="ot_${c.id}" ${ex.overtime?'checked':''} onchange="updateEx('${c.id}','overtime',this.checked)"><span class="tsl"></span></label></div>
+        <div class="exc-row"><span class="exc-lbl">Max jobs today</span><select class="exc-sel" onchange="updateEx('${c.id}','maxJobs',parseInt(this.value))">${[2,3,4,5,6,7,8].map(n=>`<option value="${n}" ${ex.maxJobs===n?'selected':''}>${n} jobs</option>`).join('')}</select></div>
+        <div class="exc-row"><span class="exc-lbl">Start time</span><select class="exc-sel" onchange="updateEx('${c.id}','startOffset',parseInt(this.value))"><option value="0" ${ex.startOffset===0?'selected':''}>Normal (7:00 AM)</option><option value="60" ${ex.startOffset===60?'selected':''}>Delayed (8:00 AM)</option><option value="120" ${ex.startOffset===120?'selected':''}>Late (9:00 AM)</option></select></div>
+        <div class="exc-row" style="flex-direction:column;align-items:flex-start;gap:5px;"><span class="exc-lbl">Restrict job types (crew will not take these)</span><div class="jtype-grid">${ALL_TYPES.map(t=>`<label class="jtype-itm"><input type="checkbox" ${ex.avoidTypes.includes(t)?'checked':''} onchange="toggleAvoid('${c.id}','${t}',this.checked)">${t}</label>`).join('')}</div></div>
+        ${asns.length?`<div style="margin-top:8px"><button class="run-btn" style="font-size:10px;padding:5px 12px;width:100%" onclick="openSch('${c.id}')">View Today's Schedule</button></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleDrw(id){document.getElementById('drw_'+id).classList.toggle('open');}
+function updateEx(id,key,val){CREW_EX[id][key]=val;}
+function toggleAvoid(id,type,checked){const ex=CREW_EX[id];if(checked&&!ex.avoidTypes.includes(type))ex.avoidTypes.push(type);else ex.avoidTypes=ex.avoidTypes.filter(t=>t!==type);}
+
+// ── MAP ───────────────────────────────────────────────────────
+function initMap(){
+  map=L.map('map',{center:[35.7896,-78.6382],zoom:10,zoomControl:true,attributionControl:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+  CREWS.forEach(c=>{
+    const ic=L.divIcon({html:`<div style="width:10px;height:10px;background:${c.color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25)"></div>`,iconSize:[10,10],iconAnchor:[5,5],className:''});
+    L.marker([c.startLat,c.startLng],{icon:ic}).addTo(map).bindTooltip(`${c.name} Depot`);
+  });
+}
+
+function placeMarkers(){
+  jMarkers.forEach(m=>map.removeLayer(m.m));jMarkers=[];
+  activeJobs.forEach(j=>{
+    const asn=assignments.find(a=>a.job.id===j.id);
+    const crew=asn?CREWS.find(c=>c.id===asn.crewId):null;
+    const col=crew?crew.color:'#888';
+    const ic=L.divIcon({html:`<div style="width:11px;height:11px;background:${col};border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[11,11],iconAnchor:[5,5],className:''});
+    const mk=L.marker([j.lat,j.lng],{icon:ic}).addTo(map);
+    mk.bindPopup(`<div class="pop-nm">${j.name}</div><div class="pop-crew" style="color:${col}">${crew?crew.name:'Unassigned'}</div><div class="pop-row"><span>${j.client}</span></div><div class="pop-row"><span>Duration</span><span>${j.dur} min</span></div><div class="pop-row"><span>Value</span><span>$${j.val.toLocaleString()}</span></div><div class="pop-row"><span>Skills</span><span>${j.skills.join(', ')}</span></div>`);
+    jMarkers.push({id:j.id,m:mk});
+  });
+}
+
+// ── OSRM ROUTING ──────────────────────────────────────────────
+async function fetchRoute(coords){
+  try{
+    const s=coords.map(c=>c.join(',')).join(';');
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${s}?overview=full&geometries=geojson`,{signal:AbortSignal.timeout(5000)});
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.code!=='Ok'||!d.routes.length)return null;
+    return d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+  }catch{return null;}
+}
+
+async function drawRoutes(){
+  rLayers.forEach(l=>map.removeLayer(l));rLayers=[];
+  routeGeoms={};crewStopTimes={};
+  for(const crew of CREWS){
+    const asns=assignments.filter(a=>a.crewId===crew.id).sort((a,b)=>a.startTime-b.startTime);
+    if(!asns.length)continue;
+    const stops=[[crew.startLng,crew.startLat],...asns.map(a=>[a.job.lng,a.job.lat])];
+
+    // Build stop waypoint times: depot departs at WS+startOffset, each asn has a startTime
+    const stopTimes=[WS+CREW_EX[crew.id].startOffset,...asns.map(a=>a.startTime)];
+
+    let pts=await fetchRoute(stops);
+    if(!pts)pts=stops.map(s=>[s[1],s[0]]);
+    routeGeoms[crew.id]=pts;
+
+    // For each segment between waypoints, distribute the route geometry proportionally
+    // We'll build a flat array of {lat,lng,time} for linear interpolation along the road
+    const segPts=[];
+    // Map each route point to a time by distributing points evenly across each segment
+    // Approach: for each consecutive pair of stopTimes, assign the portion of route points
+    const totalPts=pts.length;
+    const segCount=stops.length-1;
+
+    if(segCount>0){
+      const ptsPerSeg=Math.max(1,Math.floor(totalPts/segCount));
+      stops.forEach((_,si)=>{
+        if(si>=segCount)return;
+        const startIdx=si*ptsPerSeg;
+        const endIdx=si===segCount-1?totalPts-1:Math.min((si+1)*ptsPerSeg,totalPts-1);
+        const t0=stopTimes[si],t1=stopTimes[si+1];
+        const segLen=endIdx-startIdx;
+        for(let pi=startIdx;pi<=endIdx;pi++){
+          const frac=segLen>0?(pi-startIdx)/segLen:0;
+          segPts.push({lat:pts[pi][0],lng:pts[pi][1],time:t0+frac*(t1-t0)});
+        }
+      });
+    }else{
+      segPts.push({lat:pts[0][0],lng:pts[0][1],time:stopTimes[0]});
+    }
+    crewStopTimes[crew.id]=segPts;
+
+    const layer=L.polyline(pts,{color:crew.color,weight:3.5,opacity:.75,lineJoin:'round'}).addTo(map);
+    rLayers.push(layer);
+  }
+}
+
+// ── TIME SLIDER ───────────────────────────────────────────────
+function mt(m){const h=Math.floor(m/60),mn=m%60,ap=h>=12?'PM':'AM',hh=h>12?h-12:(h===0?12:h);return `${hh}:${mn.toString().padStart(2,'0')} ${ap}`;}
+function onSlider(v){sliderStep=parseInt(v);const mins=WS+sliderStep*15;document.getElementById('mcTime').textContent=mt(mins);drawTimeState(mins);}
+function stepT(d){stopPlay();const nv=Math.max(0,Math.min(STEPS,sliderStep+d));document.getElementById('mcSlider').value=nv;onSlider(nv);}
+function resetT(){stopPlay();document.getElementById('mcSlider').value=0;onSlider(0);}
+
+function togglePlay(){
+  if(isPlaying){stopPlay();}
+  else{startPlay();}
+}
+function startPlay(){
+  if(!assignments.length)return;
+  isPlaying=true;
+  const btn=document.getElementById('playBtn');
+  btn.textContent='&#9646;&#9646; Pause';btn.classList.add('playing');
+  // Reset to start if at end
+  if(sliderStep>=STEPS){document.getElementById('mcSlider').value=0;onSlider(0);}
+  // 13 seconds total for STEPS=52 steps => interval = 13000/52 = 250ms per step
+  const intervalMs=Math.round(13000/STEPS);
+  playInterval=setInterval(()=>{
+    if(sliderStep>=STEPS){stopPlay();return;}
+    const nv=sliderStep+1;
+    document.getElementById('mcSlider').value=nv;
+    onSlider(nv);
+  },intervalMs);
+}
+function stopPlay(){
+  isPlaying=false;
+  if(playInterval){clearInterval(playInterval);playInterval=null;}
+  const btn=document.getElementById('playBtn');
+  if(btn){btn.innerHTML='&#9654; Play';btn.classList.remove('playing');}
+}
+
+function drawTimeState(mins){
+  hLayers.forEach(l=>map.removeLayer(l));hLayers=[];
+  CREWS.forEach(crew=>{
+    const asns=assignments.filter(a=>a.crewId===crew.id);
+    if(!asns.length)return;
+
+    const segPts=crewStopTimes[crew.id];
+    if(!segPts||!segPts.length)return;
+
+    // Find position along road geometry at current time
+    // If before first point time, park at depot
+    if(mins<=segPts[0].time){
+      const ic=L.divIcon({html:`<div style="width:13px;height:13px;background:${crew.color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ${crew.color}80"></div>`,iconSize:[13,13],iconAnchor:[6,6],className:''});
+      hLayers.push(L.marker([segPts[0].lat,segPts[0].lng],{icon:ic}).addTo(map).bindTooltip(`${crew.name} \u2014 ${mt(mins)}`));
+      return;
+    }
+    // If after last point, park at last job
+    if(mins>=segPts[segPts.length-1].time){
+      const last=segPts[segPts.length-1];
+      const ic=L.divIcon({html:`<div style="width:13px;height:13px;background:${crew.color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ${crew.color}80"></div>`,iconSize:[13,13],iconAnchor:[6,6],className:''});
+      hLayers.push(L.marker([last.lat,last.lng],{icon:ic}).addTo(map).bindTooltip(`${crew.name} \u2014 ${mt(mins)}`));
+      return;
+    }
+    // Interpolate between consecutive road points
+    for(let i=1;i<segPts.length;i++){
+      if(segPts[i].time>=mins){
+        const prev=segPts[i-1],next=segPts[i];
+        const frac=(mins-prev.time)/Math.max(0.001,next.time-prev.time);
+        const lat=prev.lat+(next.lat-prev.lat)*frac;
+        const lng=prev.lng+(next.lng-prev.lng)*frac;
+        const ic=L.divIcon({html:`<div style="width:13px;height:13px;background:${crew.color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px ${crew.color}80"></div>`,iconSize:[13,13],iconAnchor:[6,6],className:''});
+        hLayers.push(L.marker([lat,lng],{icon:ic}).addTo(map).bindTooltip(`${crew.name} \u2014 ${mt(mins)}`));
+        break;
+      }
+    }
+  });
+}
+
+// ── OPTIMIZER ─────────────────────────────────────────────────
+function hav(la1,lo1,la2,lo2){const R=3958.8,dL=(la2-la1)*Math.PI/180,dO=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function canDo(crew,job){return job.skills.every(s=>crew.skills.includes(s));}
+
+function runOpt(){
+  const btn=document.getElementById('runBtn');
+  if(btn.classList.contains('busy'))return;
+  btn.classList.add('busy');btn.textContent='Computing...';
+  const ov=document.getElementById('thinking');ov.classList.add('on');
+  ['ts1','ts2','ts3','ts4','ts5','ts6','ts7'].forEach((id,i)=>setTimeout(()=>document.getElementById(id).classList.add('on'),i*370));
+  setTimeout(async()=>{
+    execute();
+    await drawRoutes();
+    ov.classList.remove('on');
+    ['ts1','ts2','ts3','ts4','ts5','ts6','ts7'].forEach(id=>document.getElementById(id).classList.remove('on'));
+    btn.classList.remove('busy');btn.textContent='Re-optimize';
+  },3200);
+}
+
+function execute(){
+  const n=Math.min(40,Math.max(20,parseInt(document.getElementById('jobCount').value)||30));
+  const w=getW();
+  activeJobs=[...JOBS].sort((a,b)=>{const p={high:3,medium:2,low:1};return p[b.priority]-p[a.priority]||b.val-a.val;}).slice(0,n);
+  assignments=[];
+  const cTime={},cPos={};
+  CREWS.forEach(c=>{const ex=CREW_EX[c.id];cTime[c.id]=WS+ex.startOffset;cPos[c.id]={lat:c.startLat,lng:c.startLng};});
+  const cCt={};CREWS.forEach(c=>cCt[c.id]=0);
+
+  const queue=[...activeJobs].sort((a,b)=>{const p={high:3,medium:2,low:1};return(p[b.priority]*10+(w.high_value||0)/100*(b.val/100))-(p[a.priority]*10+(w.high_value||0)/100*(a.val/100));});
+
+  queue.forEach(job=>{
+    let best=null,bScore=-Infinity,bRsn=[],bStart=null;
+    CREWS.forEach(crew=>{
+      const ex=CREW_EX[crew.id];
+      if(!canDo(crew,job))return;
+      if(ex.avoidTypes.some(t=>job.skills.includes(t)))return;
+      if(cCt[crew.id]>=ex.maxJobs)return;
+      const dist=hav(cPos[crew.id].lat,cPos[crew.id].lng,job.lat,job.lng);
+      const travel=Math.round(dist*2.2);
+      const arrival=cTime[crew.id]+travel,start=Math.max(arrival,WS);
+      const maxEnd=ex.overtime?WE+120:WE;
+      if(start+job.dur>maxEnd)return;
+
+      let score=0;const rsn=[];
+      const ms=job.skills.filter(s=>crew.skills.includes(s));
+      score+=(ms.length/job.skills.length)*(w.skill_match||0);
+      rsn.push(`Skill match on ${ms.join(' and ')} (priority #${rankOrder.indexOf('skill_match')+1}: "${OBJS.find(o=>o.id==='skill_match').name}").`);
+      score+=Math.max(0,(w.minimize_drive||0)-dist*((w.minimize_drive||0)/15));
+      rsn.push(`${dist.toFixed(1)} mi from current position (~${travel} min). Drive priority #${rankOrder.indexOf('minimize_drive')+1}.`);
+      score+=(job.val/1200)*(w.high_value||0);
+      rsn.push(`Job value $${job.val.toLocaleString()}. Value priority #${rankOrder.indexOf('high_value')+1}.`);
+      const loadPct=Math.round((cTime[crew.id]-WS)/480*100);
+      score+=Math.max(0,((w.balance||0)/100)*(50-loadPct));
+      rsn.push(`Crew utilization ${loadPct}%. Balance priority #${rankOrder.indexOf('balance')+1}.`);
+      const inWin=start+job.dur<=maxEnd;
+      score+=inWin?(w.meet_windows||0):-(w.meet_windows||0)*0.4;
+      rsn.push(inWin?`Finishes by ${mt(start+job.dur)}, within shift.${ex.overtime?' Overtime enabled.':''} Window priority #${rankOrder.indexOf('meet_windows')+1}.`:`Tight finish at ${mt(start+job.dur)}.`);
+      const nearby=queue.filter(jj=>!assignments.find(a=>a.job.id===jj.id)&&jj.id!==job.id&&canDo(crew,jj)&&!ex.avoidTypes.some(t=>jj.skills.includes(t))&&hav(job.lat,job.lng,jj.lat,jj.lng)<5);
+      if(nearby.length){score+=8*(w.cluster_jobs||0)/100;rsn.push(`Geographic cluster: ${nearby.length} more compatible job${nearby.length>1?'s':''} within 5 mi. Cluster priority #${rankOrder.indexOf('cluster_jobs')+1}.`);}
+      else rsn.push('No dense cluster nearby; crew routes optimally after this stop.');
+      if(score>bScore){bScore=score;best=crew;bRsn=rsn;bStart=start;}
+    });
+    if(best){
+      const dist=hav(cPos[best.id].lat,cPos[best.id].lng,job.lat,job.lng);
+      assignments.push({job,crewId:best.id,startTime:bStart,travelMins:Math.round(dist*2.2),dist,reasoning:bRsn});
+      cTime[best.id]=bStart+job.dur;cPos[best.id]={lat:job.lat,lng:job.lng};cCt[best.id]++;
+    }
+  });
+  renderResults();
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderResults(){
+  renderCrews();placeMarkers();buildTimeline();buildReasoning();refreshJobList();
+  document.getElementById('mapCtrl').style.display='block';
+  document.getElementById('mapLegend').style.display='block';
+  document.getElementById('exportBtn').style.display='inline-block';
+  document.getElementById('tlLbl').textContent='7:00 AM \u2014 8:00 PM';
+  document.getElementById('mcSlider').value=0;
+  document.getElementById('tbAssigned').textContent=assignments.length;
+  document.getElementById('tbRev').textContent='$'+assignments.reduce((s,a)=>s+a.job.val,0).toLocaleString();
+  sliderStep=0;onSlider(0);
+}
+
+function switchTab(tab){['jobs','ai'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('content-'+t).classList.toggle('active',t===tab);});}
+
+function refreshJobList(){
+  if(!assignments.length)return;
+  const mg=(parseFloat(document.getElementById('marginPct').value)||40)/100;
+  const sorted=[...assignments].sort((a,b)=>{const ci=CREWS.findIndex(c=>c.id===a.crewId)-CREWS.findIndex(c=>c.id===b.crewId);return ci!==0?ci:a.startTime-b.startTime;});
+  const totRev=sorted.reduce((s,a)=>s+a.job.val,0);
+  document.getElementById('jobScroll').innerHTML=sorted.map(a=>{
+    const crew=CREWS.find(c=>c.id===a.crewId);
+    return `<div class="jl-row"><div><div class="jl-pri" style="background:${PC[a.job.priority]}"></div></div><div><div class="jl-nm">${a.job.name}</div><div class="jl-cl">${a.job.client} &middot; ${mt(a.startTime)}</div></div><div><span class="jl-badge" style="background:${crew.color}18;color:${crew.color}">${crew.name.replace('Crew ','')}</span></div><div class="jl-rev">$${a.job.val.toLocaleString()}</div><div class="jl-mar">$${Math.round(a.job.val*mg).toLocaleString()}</div></div>`;
+  }).join('');
+  document.getElementById('ftRev').textContent='$'+totRev.toLocaleString();
+  document.getElementById('ftMar').textContent='$'+Math.round(totRev*mg).toLocaleString();
+  document.getElementById('jlFooter').style.display='grid';
+}
+
+function buildAxis(){document.getElementById('tlAxis').innerHTML=['7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM'].map(h=>`<div class="tl-hr">${h}</div>`).join('');}
+
+function buildTimeline(){
+  const TOT=WE-WS;
+  document.getElementById('tlRows').innerHTML=CREWS.map(crew=>{
+    const asns=assignments.filter(a=>a.crewId===crew.id).sort((a,b)=>a.startTime-b.startTime);
+    let blks='',prev=WS;
+    asns.forEach(a=>{
+      if(a.startTime>prev){const dl=((prev-WS)/TOT*100).toFixed(2),dw=((a.startTime-prev)/TOT*100).toFixed(2);blks+=`<div class="tl-blk tl-drive" style="left:${dl}%;width:${dw}%;background:${crew.color}20"></div>`;}
+      const jl=((a.startTime-WS)/TOT*100).toFixed(2),jw=(a.job.dur/TOT*100).toFixed(2);
+      blks+=`<div class="tl-blk" style="left:${jl}%;width:${jw}%;background:${crew.color};color:#fff;padding:0 2px;font-size:8px;font-weight:600" title="${a.job.name} \u2014 ${mt(a.startTime)}">${a.job.id}</div>`;
+      prev=a.startTime+a.job.dur;
+    });
+    return `<div class="tl-row"><div class="tl-crew-lbl" onclick="openSch('${crew.id}')" title="Click to view schedule"><div class="tl-dot" style="background:${crew.color}"></div>${crew.name.replace('Crew ','')}</div><div class="tl-track" onclick="openSch('${crew.id}')">${blks}</div></div>`;
+  }).join('');
+}
+
+function buildReasoning(){
+  const totVal=assignments.reduce((s,a)=>s+a.job.val,0);
+  const hiCov=assignments.filter(a=>a.job.priority==='high').length;
+  const hiTot=activeJobs.filter(j=>j.priority==='high').length;
+  const utils=CREWS.map(c=>Math.min(100,Math.round(assignments.filter(a=>a.crewId===c.id).reduce((s,a)=>s+a.job.dur,0)/480*100)));
+  const avgUtil=Math.round(utils.reduce((a,b)=>a+b,0)/utils.length);
+  const w=getW(),growth=(parseFloat(document.getElementById('growthRate').value)||8)/100;
+  const winWt=(w.meet_windows||0)/100,skWt=(w.skill_match||0)/100;
+  const ret=0.60+(winWt*0.5+skWt*0.5)*0.30;
+  const annBase=totVal*250,annRet=assignments.length*ret*(totVal/Math.max(1,assignments.length))*250,annGr=annRet*(1+growth);
+
+  let html=`<div class="exec-sum"><div class="exec-t">Executive Summary</div><div class="exec-grid"><div class="exec-stat"><div class="exec-val">${assignments.length}/${activeJobs.length}</div><div class="exec-lbl">Jobs Scheduled</div></div><div class="exec-stat"><div class="exec-val">$${totVal.toLocaleString()}</div><div class="exec-lbl">Daily Revenue</div></div><div class="exec-stat"><div class="exec-val">${avgUtil}%</div><div class="exec-lbl">Avg Utilization</div></div><div class="exec-stat"><div class="exec-val">${hiCov}/${hiTot}</div><div class="exec-lbl">High-Pri Covered</div></div></div><div class="exec-proj"><div class="exec-pt">Annual Revenue Projection</div><div class="exec-pr"><span>Daily Baseline</span><span class="exec-pv">$${totVal.toLocaleString()}</span></div><div class="exec-pr"><span>Gross Annual (250 days)</span><span class="exec-pv">$${Math.round(annBase/1000)}K</span></div><div class="exec-pr"><span>Est. Retention</span><span class="exec-pv">${Math.round(ret*100)}%</span></div><div class="exec-pr"><span>w/ Retention</span><span class="exec-pv">$${Math.round(annRet/1000)}K</span></div><div class="exec-pr"><span>w/ ${Math.round(growth*100)}% Growth</span><span class="exec-pv hi">$${Math.round(annGr/1000)}K</span></div></div><div class="exec-ins">Top priorities: <strong>${rankOrder.slice(0,3).map(id=>OBJS.find(o=>o.id===id).name).join(' &rarr; ')}</strong>. Retention estimated at ${Math.round(ret*100)}% based on window compliance and skill-match rank.</div></div>`;
+
+  [...assignments].sort((a,b)=>{const ci=CREWS.findIndex(c=>c.id===a.crewId)-CREWS.findIndex(c=>c.id===b.crewId);return ci!==0?ci:a.startTime-b.startTime;}).forEach(a=>{
+    const crew=CREWS.find(c=>c.id===a.crewId);
+    html+=`<div class="asgn-blk"><div class="asgn-hdr"><div class="asgn-badge" style="background:${crew.color}18;color:${crew.color}">${crew.name}</div><div><div class="asgn-nm">${a.job.name}</div><div class="asgn-meta">${a.job.id} &middot; ${mt(a.startTime)} &middot; ${a.job.dur}min &middot; $${a.job.val.toLocaleString()} &middot; <span style="color:${PC[a.job.priority]}">${a.job.priority}</span></div></div></div><ul class="reasons">${a.reasoning.map(r=>`<li><span class="rb">&#x25B8;</span><span>${r}</span></li>`).join('')}</ul></div>`;
+  });
+
+  const rsn=document.getElementById('reasoning');rsn.innerHTML=html;rsn.style.display='block';
+  document.getElementById('rEmpty').style.display='none';
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────
+// ── PDF EXPORT ────────────────────────────────────────────────
+function exportPDF(){
+  if(!assignments.length){alert('Run the optimizer first.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'letter'});
+
+  // ── constants ──
+  const PW=792,PH=612;
+  const ML=20,MR=20,MT=20;  // margins
+  const FONT='helvetica';
+  const mg=(parseFloat(document.getElementById('marginPct').value)||40)/100;
+
+  // ── color helpers: only RGB integers, no CSS strings ──
+  const hr=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const fill=h=>{const[r,g,b]=hr(h);doc.setFillColor(r,g,b);};
+  const ink=h=>{const[r,g,b]=hr(h);doc.setTextColor(r,g,b);};
+  const stroke=h=>{const[r,g,b]=hr(h);doc.setDrawColor(r,g,b);};
+
+  // ── shared: draw page header ──
+  function pageHeader(label){
+    fill('#22493D');doc.rect(0,0,PW,34,'F');
+    doc.setFont(FONT,'bold');doc.setFontSize(13);doc.setTextColor(255,255,255);
+    doc.text('Old North Analytics',ML,22);
+    const onaW=doc.getTextWidth('Old North Analytics');
+    doc.setFont(FONT,'normal');doc.setFontSize(9);doc.setTextColor(160,200,185);
+    doc.text('  |  DispatchIQ  |  '+label,ML+onaW,22);
+    const dateStr=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    doc.setFontSize(8);doc.setTextColor(140,185,170);
+    doc.text(dateStr,PW-MR,22,{align:'right'});
+  }
+
+  // ── shared: draw page footer ──
+  function pageFooter(pageNum,pageTotal){
+    fill('#22493D');doc.rect(0,PH-22,PW,22,'F');
+    doc.setFont(FONT,'normal');doc.setFontSize(7);doc.setTextColor(140,185,170);
+    doc.text('Old North Analytics  |  DispatchIQ  |  For Internal Use Only',ML,PH-8);
+    doc.text(`Page ${pageNum} of ${pageTotal}  |  ${assignments.length} jobs  |  $${assignments.reduce((s,a)=>s+a.job.val,0).toLocaleString()} daily revenue`,PW-MR,PH-8,{align:'right'});
+  }
+
+  // ── shared: section label ──
+  function sectionLabel(label,y){
+    doc.setFont(FONT,'bold');doc.setFontSize(7.5);ink('#537C6F');
+    doc.text(label,ML,y);
+    stroke('#c8ddd8');doc.setLineWidth(0.4);doc.line(ML,y+3,PW-MR,y+3);
+    return y+14;
+  }
+
+  // ════════════════════════════════════════════
+  // PAGE 1: SCHEDULE
+  // ════════════════════════════════════════════
+  pageHeader('Crew Schedule');
+  let y=44;
+
+  // ── 1A: Optimization Priorities ──
+  y=sectionLabel('OPTIMIZATION PRIORITIES',y);
+  const w=getW();
+  rankOrder.forEach((id,i)=>{
+    const o=OBJS.find(x=>x.id===id);
+    const xPos=ML+(i*(PW-ML-MR)/6);
+    // rank bubble
+    fill('#537C6F');doc.circle(xPos+7,y-2,6,'F');
+    doc.setFont(FONT,'bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+    doc.text(String(i+1),xPos+7,y+1,{align:'center'});
+    // label
+    doc.setFont(FONT,'bold');doc.setFontSize(7);ink('#1a2e26');
+    doc.text(o.name,xPos+16,y,{maxWidth:(PW-ML-MR)/6-18});
+    doc.setFont(FONT,'normal');doc.setFontSize(6);ink('#4a6b5e');
+    doc.text(o.desc,xPos+16,y+7,{maxWidth:(PW-ML-MR)/6-18});
+  });
+  y+=22;
+
+  // ── 1B: Crew Summaries ──
+  y=sectionLabel('CREW SUMMARIES',y);
+  const crewsWithJobs=CREWS.filter(c=>assignments.some(a=>a.crewId===c.id));
+  crewsWithJobs.forEach(crew=>{
+    const asns=assignments.filter(a=>a.crewId===crew.id).sort((a,b)=>a.startTime-b.startTime);
+    const ex=CREW_EX[crew.id];
+    const totRev=asns.reduce((s,a)=>s+a.job.val,0);
+    const totMins=asns.reduce((s,a)=>s+a.job.dur,0);
+    const hiCount=asns.filter(a=>a.job.priority==='high').length;
+    const firstJob=asns[0],lastJob=asns[asns.length-1];
+    const endTime=lastJob.startTime+lastJob.job.dur;
+
+    // colored crew dot
+    const[cr,cg,cb]=hr(crew.color);
+    doc.setFillColor(cr,cg,cb);doc.circle(ML+5,y-2,4,'F');
+
+    doc.setFont(FONT,'bold');doc.setFontSize(8);ink('#1a2e26');
+    doc.text(`${crew.name}  (${crew.lead})`,ML+13,y);
+
+    let summary=`${asns.length} jobs  |  ${mt(firstJob.startTime)} - ${mt(endTime)}  |  $${totRev.toLocaleString()} revenue  |  $${Math.round(totRev*mg).toLocaleString()} margin  |  ${Math.floor(totMins/60)}h ${totMins%60}m scheduled`;
+    if(hiCount)summary+=`  |  ${hiCount} high-priority job${hiCount>1?'s':''}`;
+    const constraints=[];
+    if(ex.overtime)constraints.push('OT allowed');
+    if(ex.startOffset===60)constraints.push('8:00 AM start');
+    if(ex.startOffset===120)constraints.push('9:00 AM start');
+    if(ex.maxJobs<6)constraints.push(`Max ${ex.maxJobs} jobs`);
+    if(ex.avoidTypes.length)constraints.push(`Restricted: ${ex.avoidTypes.join(', ')}`);
+    if(constraints.length)summary+=`  |  ${constraints.join('  |  ')}`;
+
+    doc.setFont(FONT,'normal');doc.setFontSize(7);ink('#4a6b5e');
+    doc.text(summary,ML+13,y+8,{maxWidth:PW-ML-MR-13});
+    y+=19;
+  });
+  y+=4;
+
+  // ── 1C: Crew Timetables — 2x2 grid ──
+  y=sectionLabel('CREW TIMETABLES',y);
+
+  const GAP=10;
+  const TBL_W=(PW-ML-MR-GAP)/2;
+  const xCols=[ML, ML+TBL_W+GAP];
+
+  // column widths inside each table
+  const C_TIME=68,C_DUR=32,C_VAL=48,C_PRI=28;
+  const C_JOB=TBL_W-C_TIME-C_DUR-C_VAL-C_PRI;
+  // x offsets within table
+  const cx={time:0,job:C_TIME,dur:C_TIME+C_JOB,val:C_TIME+C_JOB+C_DUR,pri:C_TIME+C_JOB+C_DUR+C_VAL};
+
+  // compute row height needed: 2 lines per job row
+  const ROW_H=14;
+  const HDR_H=22; // crew name + constraints
+  const COL_HDR_H=11;
+  const TOTAL_H=13;
+
+  // track bottom of col 0 to sync after each pair
+  let col0Bottom=y;
+  let rowStartY=y;  // y at the start of each crew pair — both columns start here
+
+  crewsWithJobs.forEach((crew,ci)=>{
+    const col=ci%2;
+    const xB=xCols[col];
+    // both columns in a pair start at the same rowStartY
+    if(col===0){rowStartY=y;}
+    let ty=rowStartY;
+
+    const asns=assignments.filter(a=>a.crewId===crew.id).sort((a,b)=>a.startTime-b.startTime);
+    const ex=CREW_EX[crew.id];
+
+    // ── crew header rect ──
+    const[cr,cg,cb]=hr(crew.color);
+    doc.setFillColor(cr,cg,cb);
+    doc.rect(xB,ty,TBL_W,HDR_H,'F');
+    doc.setFont(FONT,'bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
+    doc.text(`${crew.name}  —  ${crew.lead}`,xB+5,ty+12);
+
+    const constraints=[];
+    constraints.push(`Max ${ex.maxJobs} jobs`);
+    if(ex.overtime)constraints.push('OT allowed');
+    if(ex.startOffset===60)constraints.push('Start 8:00 AM');
+    if(ex.startOffset===120)constraints.push('Start 9:00 AM');
+    if(ex.avoidTypes.length)constraints.push(`No: ${ex.avoidTypes.join(', ')}`);
+    doc.setFont(FONT,'normal');doc.setFontSize(6.5);doc.setTextColor(210,235,225);
+    doc.text(constraints.join('   |   '),xB+5,ty+21,{maxWidth:TBL_W-10});
+    ty+=HDR_H;
+
+    // ── column header row ──
+    fill('#EAF6F2');doc.rect(xB,ty,TBL_W,COL_HDR_H,'F');
+    stroke('#c8ddd8');doc.setLineWidth(0.3);
+    doc.rect(xB,ty,TBL_W,COL_HDR_H,'S');
+    doc.setFont(FONT,'bold');doc.setFontSize(6.5);ink('#537C6F');
+    doc.text('TIME',       xB+cx.time+2, ty+7);
+    doc.text('JOB / CLIENT',xB+cx.job+2,  ty+7);
+    doc.text('DUR',        xB+cx.dur+2,  ty+7);
+    doc.text('VALUE',      xB+cx.val+2,  ty+7);
+    doc.text('PRI',        xB+cx.pri+2,  ty+7);
+    ty+=COL_HDR_H;
+
+    // ── job rows ──
+    const priColor={high:'#dc2626',medium:'#d97706',low:'#2e8b57'};
+    const FOOTER_SAFE=PH-30;
+    asns.forEach((a,ri)=>{
+      if(ty+ROW_H>FOOTER_SAFE)return; // skip rows that would bleed into footer
+      if(ri%2===0){fill('#ffffff');}else{fill('#f5f8f6');}
+      doc.rect(xB,ty,TBL_W,ROW_H,'F');
+      stroke('#c8ddd8');doc.setLineWidth(0.25);
+      doc.line(xB,ty+ROW_H,xB+TBL_W,ty+ROW_H);
+
+      // time
+      doc.setFont(FONT,'bold');doc.setFontSize(7);ink('#1a2e26');
+      doc.text(mt(a.startTime),xB+cx.time+2,ty+9);
+
+      // job name + client
+      const jname=a.job.name.length>30?a.job.name.slice(0,29)+'…':a.job.name;
+      const cname=a.job.client.length>32?a.job.client.slice(0,31)+'…':a.job.client;
+      doc.setFont(FONT,'bold');doc.setFontSize(7);ink('#1a2e26');
+      doc.text(jname,xB+cx.job+2,ty+6);
+      doc.setFont(FONT,'normal');doc.setFontSize(5.5);ink('#7a9e92');
+      doc.text(cname,xB+cx.job+2,ty+12);
+
+      // duration
+      doc.setFont(FONT,'normal');doc.setFontSize(7);ink('#4a6b5e');
+      doc.text(`${a.job.dur}m`,xB+cx.dur+2,ty+9);
+
+      // value
+      doc.setFont(FONT,'bold');doc.setFontSize(7);ink('#1a2e26');
+      doc.text(`$${a.job.val.toLocaleString()}`,xB+cx.val+2,ty+9);
+
+      // priority
+      const[pr,pg,pb]=hr(priColor[a.job.priority]||'#1a2e26');
+      doc.setTextColor(pr,pg,pb);
+      doc.setFont(FONT,'bold');doc.setFontSize(6.5);
+      doc.text(a.job.priority.slice(0,3).toUpperCase(),xB+cx.pri+2,ty+9);
+
+      ty+=ROW_H;
+    });
+
+    // ── totals row ──
+    const totRev=asns.reduce((s,a)=>s+a.job.val,0);
+    const totMins=asns.reduce((s,a)=>s+a.job.dur,0);
+    fill('#22493D');doc.rect(xB,ty,TBL_W,TOTAL_H,'F');
+    doc.setFont(FONT,'bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
+    doc.text(`${asns.length} jobs  |  ${Math.floor(totMins/60)}h ${totMins%60}m work`,xB+cx.time+2,ty+9);
+    doc.text(`$${totRev.toLocaleString()}  ($${Math.round(totRev*mg).toLocaleString()} margin)`,xB+TBL_W-4,ty+9,{align:'right'});
+    ty+=TOTAL_H;
+
+    // track bottom and advance y
+    if(col===0){col0Bottom=ty;}
+    // after col1 (or last crew if odd count), advance y past the taller of the two columns
+    if(col===1||ci===crewsWithJobs.length-1){
+      y=Math.max(col0Bottom,ty)+10;
+    }
+  });
+
+  pageFooter(1,2);
+
+  // ════════════════════════════════════════════
+  // PAGE 2: AI REASONING
+  // ════════════════════════════════════════════
+  doc.addPage();
+  pageHeader('AI Reasoning — Assignment Decisions');
+  y=44;
+
+  // ── executive summary strip ──
+  const totVal=assignments.reduce((s,a)=>s+a.job.val,0);
+  const hiCov=assignments.filter(a=>a.job.priority==='high').length;
+  const hiTot=assignments.filter(a=>a.job.priority==='high').length; // already filtered
+  const utils=CREWS.map(c=>Math.min(100,Math.round(assignments.filter(a=>a.crewId===c.id).reduce((s,a)=>s+a.job.dur,0)/480*100)));
+  const avgUtil=Math.round(utils.reduce((a,b)=>a+b,0)/utils.length);
+  const growth=(parseFloat(document.getElementById('growthRate').value)||8)/100;
+  const ww=getW();
+  const ret=0.60+((ww.meet_windows||0)/100*0.5+(ww.skill_match||0)/100*0.5)*0.30;
+  const annGr=assignments.length*ret*(totVal/Math.max(1,assignments.length))*250*(1+growth);
+
+  const statW=(PW-ML-MR)/5;
+  [{label:'Jobs Scheduled',val:`${assignments.length} / ${activeJobs.length}`},
+   {label:'Daily Revenue',  val:`$${totVal.toLocaleString()}`},
+   {label:'Avg Utilization',val:`${avgUtil}%`},
+   {label:'Est. Retention', val:`${Math.round(ret*100)}%`},
+   {label:'Annual w/ Growth',val:`$${Math.round(annGr/1000)}K`}
+  ].forEach((s,i)=>{
+    fill('#EAF6F2');stroke('#c8ddd8');doc.setLineWidth(0.4);
+    doc.rect(ML+i*statW,y,statW-4,26,'FD');
+    doc.setFont(FONT,'bold');doc.setFontSize(11);ink('#537C6F');
+    doc.text(s.val,ML+i*statW+(statW-4)/2,y+13,{align:'center'});
+    doc.setFont(FONT,'normal');doc.setFontSize(6.5);ink('#7a9e92');
+    doc.text(s.label,ML+i*statW+(statW-4)/2,y+22,{align:'center'});
+  });
+  y+=34;
+
+  // ── top priorities note ──
+  doc.setFont(FONT,'italic');doc.setFontSize(7.5);ink('#4a6b5e');
+  const topPrios=rankOrder.slice(0,3).map(id=>OBJS.find(o=>o.id===id).name).join(' > ');
+  doc.text(`Scheduling weighted by: ${topPrios}`,ML,y);
+  y+=14;
+
+  // ── per-assignment reasoning: 2 columns ──
+  const sorted=[...assignments].sort((a,b)=>{
+    const ci=CREWS.findIndex(c=>c.id===a.crewId)-CREWS.findIndex(c=>c.id===b.crewId);
+    return ci!==0?ci:a.startTime-b.startTime;
+  });
+
+  const RCOL_W=(PW-ML-MR-GAP)/2;
+  const rCols=[ML,ML+RCOL_W+GAP];
+  const FOOTER_Y=PH-28;
+  let pageCount=2;
+  let rColY=[y,y];
+  let colIdx=0;
+
+  function ensureReasoningPage(neededH){
+    // if the shorter column can't fit neededH, add a new page
+    const minY=Math.min(rColY[0],rColY[1]);
+    if(minY+neededH>FOOTER_Y){
+      pageFooter(pageCount,pageCount); // draw footer on current page (total updated after)
+      doc.addPage();
+      pageCount++;
+      pageHeader('AI Reasoning — continued');
+      const newY=44;
+      rColY=[newY,newY];
+      colIdx=0;
+    }
+  }
+
+  sorted.forEach(a=>{
+    const crew=CREWS.find(c=>c.id===a.crewId);
+
+    // estimate block height: header (13) + 6 bullets * ~9 each + 4 gap
+    const estH=13+a.reasoning.length*9+4;
+    ensureReasoningPage(estH);
+
+    const xB=rCols[colIdx];
+    let ty=rColY[colIdx];
+
+    // assignment header
+    const[cr,cg,cb]=hr(crew.color);
+    doc.setFillColor(cr,cg,cb);doc.rect(xB,ty,RCOL_W,13,'F');
+    doc.setFont(FONT,'bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+    doc.text(`${a.job.name}`,xB+5,ty+9,{maxWidth:RCOL_W*0.55});
+    doc.setFont(FONT,'normal');doc.setFontSize(6.5);doc.setTextColor(210,235,225);
+    doc.text(`${crew.name}  |  ${mt(a.startTime)}  |  $${a.job.val.toLocaleString()}`,xB+RCOL_W-4,ty+9,{align:'right'});
+    ty+=13;
+
+    // reasoning bullets
+    a.reasoning.forEach(r=>{
+      const lines=doc.splitTextToSize(`• ${r}`,RCOL_W-10);
+      const blockH=lines.length*8+2;
+      // if this bullet would overflow, push both columns to a new page
+      if(ty+blockH>FOOTER_Y){
+        pageFooter(pageCount,pageCount);
+        doc.addPage();
+        pageCount++;
+        pageHeader('AI Reasoning — continued');
+        rColY=[44,44];
+        colIdx=0;
+        ty=44;
+      }
+      fill('#f5f8f6');doc.rect(xB,ty,RCOL_W,blockH,'F');
+      stroke('#c8ddd8');doc.setLineWidth(0.2);doc.line(xB,ty+blockH,xB+RCOL_W,ty+blockH);
+      doc.setFont(FONT,'normal');doc.setFontSize(6.5);ink('#4a6b5e');
+      doc.text(lines,xB+5,ty+7);
+      ty+=blockH;
+    });
+
+    ty+=4;
+    rColY[colIdx]=ty;
+    colIdx=rColY[0]<=rColY[1]?0:1;
+  });
+
+  // update all page footers with correct total now that we know pageCount
+  // jsPDF doesn't support retroactive footer edits, so redraw footer on last page
+  pageFooter(pageCount,pageCount);
+
+  doc.save(`DispatchIQ_Schedule_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>

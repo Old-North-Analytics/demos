@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retail Intelligence Demo | Old North Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #537C6F;
+    --dark: #22493D;
+    --light: #EAF6F2;
+    --black: #111;
+    --white: #fff;
+    --gray: #f4f4f2;
+    --border: #d8e8e4;
+    --muted: #6b7c78;
+    --danger: #c0392b;
+    --warn: #e67e22;
+    --warn-bg: #fdebd0;
+    --warn-text: #935116;
+    --danger-bg: #fadbd8;
+    --danger-text: #922b21;
+    --good-bg: #d4ede8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    background: var(--gray);
+    color: var(--black);
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--dark);
+    color: var(--white);
+    padding: 0 1.5rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 3px solid var(--primary);
+  }
+
+  .hbrand { display: flex; align-items: center; gap: 0.6rem; }
+
+  .hlogo {
+    width: 28px; height: 28px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 700; color: var(--white);
+  }
+
+  .htitle { font-size: 0.95rem; font-weight: 600; }
+  .hsub { font-size: 0.7rem; opacity: 0.6; font-weight: 400; }
+
+  .hbadge {
+    background: var(--primary); color: var(--white);
+    font-size: 0.65rem; font-weight: 600;
+    padding: 0.2rem 0.55rem; border-radius: 20px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+
+  /* ── API BAR ── */
+  .api-bar {
+    background: #1a3830;
+    padding: 0.35rem 1.5rem;
+    display: flex; align-items: center; gap: 0.6rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid #0f2820;
+  }
+
+  .api-bar label {
+    font-size: 0.72rem; font-weight: 600;
+    color: rgba(255,255,255,0.65); white-space: nowrap;
+  }
+
+  #api-key {
+    width: 320px;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px;
+    font-size: 0.75rem; font-family: monospace;
+    background: rgba(255,255,255,0.08); color: var(--white);
+    outline: none;
+  }
+
+  #api-key:focus { border-color: var(--primary); }
+  #api-key::placeholder { color: rgba(255,255,255,0.3); }
+
+  #api-status { font-size: 0.7rem; font-weight: 500; }
+  .s-ok { color: #8fbdb4; }
+  .s-empty { color: rgba(255,255,255,0.35); }
+  .s-err { color: #f1948a; }
+
+  /* ── MAIN BODY ── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── DASHBOARD ── */
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  .kpi {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    position: relative; overflow: hidden;
+  }
+
+  .kpi::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: var(--primary);
+  }
+
+  .kpi.warn::before { background: var(--warn); }
+  .kpi.danger::before { background: var(--danger); }
+
+  .kpi-label {
+    font-size: 0.62rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--muted); margin-bottom: 0.25rem;
+  }
+
+  .kpi-value {
+    font-size: 1.55rem; font-weight: 700;
+    color: var(--dark); line-height: 1; margin-bottom: 0.2rem;
+  }
+
+  .kpi-delta { font-size: 0.68rem; font-weight: 500; }
+  .up { color: var(--primary); }
+  .dn { color: var(--danger); }
+  .flat { color: var(--muted); }
+
+  /* ── CHART ROW ── */
+  .chart-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+    display: flex; flex-direction: column;
+  }
+
+  .card-head {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem; flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 0.72rem; font-weight: 600;
+    color: var(--dark);
+  }
+
+  .controls { display: flex; gap: 0.4rem; align-items: center; }
+
+  select {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.68rem; font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--white); color: var(--dark);
+    cursor: pointer; outline: none;
+  }
+
+  select:focus { border-color: var(--primary); }
+
+  .chart-wrap { position: relative; flex: 1; min-height: 0; }
+
+  /* ── SKU TABLE ── */
+  .table-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    flex: 1; min-height: 0; overflow: hidden;
+  }
+
+  .table-head {
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    justify-content: space-between; flex-shrink: 0;
+  }
+
+  .table-scroll {
+    overflow-y: auto; flex: 1; min-height: 0;
+  }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+
+  thead { position: sticky; top: 0; z-index: 1; }
+
+  thead th {
+    background: #f8faf9;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.65rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none;
+    white-space: nowrap;
+  }
+
+  thead th:hover { color: var(--dark); background: #eef5f3; }
+
+  thead th.th-r { text-align: right; }
+  thead th.th-l { text-align: left; }
+
+  thead th .sort-icon { margin-left: 3px; opacity: 0.4; font-size: 0.6rem; }
+  thead th.sorted .sort-icon { opacity: 1; color: var(--primary); }
+
+  tbody tr { border-bottom: 1px solid #f0f0ee; transition: background 0.1s; }
+  tbody tr:hover { background: #f7fbfa; }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 0.45rem 0.6rem;
+    vertical-align: middle;
+  }
+
+  td.td-l { text-align: left; }
+  td.td-r { text-align: right; }
+
+  .sku-name { font-weight: 500; color: var(--dark); }
+  .sku-code { font-size: 0.65rem; color: var(--muted); font-weight: 400; }
+
+  .pill {
+    display: inline-block;
+    padding: 0.12rem 0.45rem;
+    border-radius: 20px;
+    font-size: 0.62rem; font-weight: 600;
+  }
+
+  .pg { background: var(--good-bg); color: var(--dark); }
+  .py { background: var(--warn-bg); color: var(--warn-text); }
+  .pr { background: var(--danger-bg); color: var(--danger-text); }
+
+  .bar-wrap { display: flex; align-items: center; gap: 0.4rem; }
+  .bar-bg { background: #e8e8e6; border-radius: 2px; height: 5px; width: 60px; flex-shrink: 0; }
+  .bar-fill { height: 5px; border-radius: 2px; background: var(--primary); }
+
+  /* ── CHAT PANEL ── */
+  .chat-panel {
+    background: var(--white);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden; min-height: 0;
+  }
+
+  .chat-hd {
+    background: var(--dark); color: var(--white);
+    padding: 0.75rem 1rem; flex-shrink: 0;
+  }
+
+  .chat-hd-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.1rem; }
+  .chat-hd-sub { font-size: 0.68rem; opacity: 0.6; }
+
+  .chat-msgs {
+    flex: 1; overflow-y: auto;
+    padding: 0.75rem; display: flex;
+    flex-direction: column; gap: 0.6rem;
+    min-height: 0;
+  }
+
+  .msg {
+    max-width: 94%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem; line-height: 1.5;
+    white-space: pre-wrap;
+    animation: fadeUp 0.15s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-a {
+    background: var(--light);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+  }
+
+  .msg-u {
+    background: var(--dark); color: var(--white);
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+  }
+
+  .msg-sys {
+    background: #fff8f0;
+    border: 1px solid #fde8c8;
+    color: #7d5a1e;
+    align-self: center; font-size: 0.72rem;
+    text-align: center; max-width: 100%;
+  }
+
+  .typing {
+    display: flex; gap: 3px;
+    padding: 0.55rem 0.75rem;
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 8px; border-bottom-left-radius: 2px;
+    align-self: flex-start; width: fit-content;
+  }
+
+  .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--primary); animation: bounce 1.2s infinite;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+  }
+
+  .suggestions {
+    padding: 0 0.75rem 0.4rem;
+    display: flex; flex-direction: column; gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  .sug-label {
+    font-size: 0.62rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+
+  .sug-btn {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.72rem; font-weight: 500;
+    color: var(--dark); font-family: 'Inter', sans-serif;
+    cursor: pointer; text-align: left;
+    transition: background 0.1s, border-color 0.1s;
+  }
+
+  .sug-btn:hover { background: var(--good-bg); border-color: var(--primary); }
+
+  .chat-input-row {
+    padding: 0.6rem 0.75rem;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 0.4rem; flex-shrink: 0;
+  }
+
+  #chat-input {
+    flex: 1;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.78rem; font-family: 'Inter', sans-serif;
+    outline: none; resize: none;
+    line-height: 1.4; max-height: 72px;
+    overflow-y: auto;
+  }
+
+  #chat-input:focus { border-color: var(--primary); }
+
+  #send-btn {
+    background: var(--primary); color: var(--white);
+    border: none; border-radius: 6px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.78rem; font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.1s; align-self: flex-end;
+  }
+
+  #send-btn:hover { background: var(--dark); }
+  #send-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--dark);
+    color: rgba(255,255,255,0.45);
+    font-size: 0.62rem; text-align: center;
+    padding: 0.3rem; flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .footer span { color: rgba(255,255,255,0.75); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="hbrand">
+      <div class="hlogo">O</div>
+      <div>
+        <div class="htitle">Retail Intelligence Dashboard</div>
+        <div class="hsub">Powered by Old North Analytics</div>
+      </div>
+    </div>
+    <div class="hbadge">AI Demo</div>
+  </header>
+
+  <!-- API BAR -->
+  <div class="api-bar">
+    <label for="api-key">Anthropic API Key:</label>
+    <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" />
+    <span id="api-status" class="s-empty">No key entered</span>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="dashboard">
+
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value" id="kpi-rev">$84,210</div>
+          <div class="kpi-delta up" id="kpi-rev-d">+12.4% vs prior month</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Gross Margin</div>
+          <div class="kpi-value" id="kpi-mgn">52.3%</div>
+          <div class="kpi-delta dn" id="kpi-mgn-d">-1.8 pts vs prior month</div>
+        </div>
+        <div class="kpi warn">
+          <div class="kpi-label">Slow-Moving SKUs</div>
+          <div class="kpi-value" id="kpi-slow">18</div>
+          <div class="kpi-delta flat">No movement in 45+ days</div>
+        </div>
+        <div class="kpi danger">
+          <div class="kpi-label">Stockouts</div>
+          <div class="kpi-value" id="kpi-sout">7</div>
+          <div class="kpi-delta dn" id="kpi-sout-d">+3 vs prior month</div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="chart-row">
+
+        <!-- Dynamic chart -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title" id="main-chart-title">Daily Revenue -- All Categories</div>
+            <div class="controls">
+              <select id="sel-period" onchange="updateMainChart()">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+              </select>
+              <select id="sel-metric" onchange="updateMainChart()">
+                <option value="revenue">Revenue</option>
+                <option value="margin">Margin %</option>
+              </select>
+              <select id="sel-cat" onchange="updateMainChart()">
+                <option value="all">All Categories</option>
+                <option value="Apparel">Apparel</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Home Goods">Home Goods</option>
+                <option value="Jewelry">Jewelry</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:130px">
+            <canvas id="mainChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Category chart -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">By Category</div>
+            <div class="controls">
+              <select id="sel-cat-metric" onchange="updateCatChart()">
+                <option value="revenue">Revenue</option>
+                <option value="margin">Margin %</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:130px">
+            <canvas id="catChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SKU TABLE -->
+      <div class="table-card">
+        <div class="table-head">
+          <div class="card-title">SKU Performance</div>
+          <div class="controls">
+            <select id="sel-sku-period" onchange="renderSkuTable()">
+              <option value="feb">February 2025</option>
+              <option value="jan">January 2025</option>
+              <option value="both">Jan + Feb Combined</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="th-l" onclick="sortTable('name')">Product <span class="sort-icon" id="si-name">&#8597;</span></th>
+                <th class="th-l" onclick="sortTable('category')">Category <span class="sort-icon" id="si-category">&#8597;</span></th>
+                <th class="th-r" onclick="sortTable('units')">Units <span class="sort-icon" id="si-units">&#8597;</span></th>
+                <th class="th-r" onclick="sortTable('revenue')">Revenue <span class="sort-icon" id="si-revenue">&#8597;</span></th>
+                <th class="th-r" onclick="sortTable('margin')">Margin % <span class="sort-icon" id="si-margin">&#8597;</span></th>
+                <th class="th-l" onclick="sortTable('velocity')">Velocity <span class="sort-icon" id="si-velocity">&#8597;</span></th>
+                <th class="th-l" onclick="sortTable('status')">Stock Status <span class="sort-icon" id="si-status">&#8597;</span></th>
+              </tr>
+            </thead>
+            <tbody id="sku-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+    <!-- CHAT PANEL -->
+    <div class="chat-panel">
+      <div class="chat-hd">
+        <div class="chat-hd-title">Ask About Your Store</div>
+        <div class="chat-hd-sub">AI analyst with full access to this store's data</div>
+      </div>
+
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg msg-a">Hello! I have full access to this store's data -- revenue, margins, SKU performance, inventory status, and more. What would you like to know?</div>
+      </div>
+
+      <div class="suggestions" id="suggestions">
+        <div class="sug-label">Try asking:</div>
+        <button class="sug-btn" onclick="useSuggestion(this)">Which SKUs should I discount or clear?</button>
+        <button class="sug-btn" onclick="useSuggestion(this)">Where is my margin pressure coming from?</button>
+        <button class="sug-btn" onclick="useSuggestion(this)">What are my biggest reorder risks?</button>
+        <button class="sug-btn" onclick="useSuggestion(this)">How did January compare to February?</button>
+      </div>
+
+      <div class="chat-input-row">
+        <textarea id="chat-input" rows="2" placeholder="Ask anything about your store data..."></textarea>
+        <button id="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <div class="footer">Demo by <span>Old North Analytics</span> &bull; oldnorthanalytics.com &bull; AI-powered business intelligence for small business</div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════════
+
+const SKUS_FEB = [
+  { sku:'HTG-001', name:'Heritage Canvas Tote',       category:'Accessories', units:142, revenue:9940,  margin:61, velocity:'Fast',     status:'In Stock'  },
+  { sku:'CAN-012', name:'Hand-Poured Soy Candle Set', category:'Home Goods',  units:98,  revenue:8820,  margin:58, velocity:'Fast',     status:'Low Stock' },
+  { sku:'APP-034', name:'Linen Button-Down Shirt',    category:'Apparel',     units:76,  revenue:7980,  margin:48, velocity:'Moderate', status:'In Stock'  },
+  { sku:'JWL-007', name:'Sterling Silver Cuff',       category:'Jewelry',     units:44,  revenue:7480,  margin:65, velocity:'Moderate', status:'In Stock'  },
+  { sku:'APP-021', name:'Merino Wool Cardigan',       category:'Apparel',     units:55,  revenue:7150,  margin:44, velocity:'Moderate', status:'In Stock'  },
+  { sku:'HME-019', name:'Ceramic Serving Bowl',       category:'Home Goods',  units:89,  revenue:6230,  margin:54, velocity:'Fast',     status:'In Stock'  },
+  { sku:'ACC-088', name:'Leather Card Wallet',        category:'Accessories', units:110, revenue:5830,  margin:59, velocity:'Fast',     status:'Low Stock' },
+  { sku:'JWL-015', name:'Brass Hoop Earrings',        category:'Jewelry',     units:67,  revenue:5360,  margin:62, velocity:'Moderate', status:'In Stock'  },
+  { sku:'APP-055', name:'Printed Midi Skirt',         category:'Apparel',     units:41,  revenue:4920,  margin:46, velocity:'Slow',     status:'In Stock'  },
+  { sku:'HME-031', name:'Beeswax Taper Candles',      category:'Home Goods',  units:134, revenue:4690,  margin:56, velocity:'Fast',     status:'In Stock'  },
+  { sku:'ACC-044', name:'Woven Crossbody Bag',        category:'Accessories', units:28,  revenue:4480,  margin:52, velocity:'Slow',     status:'Overstock' },
+  { sku:'APP-072', name:'Cropped Denim Jacket',       category:'Apparel',     units:19,  revenue:3990,  margin:39, velocity:'Slow',     status:'Overstock' },
+  { sku:'JWL-022', name:'Gemstone Pendant Necklace',  category:'Jewelry',     units:23,  revenue:3910,  margin:68, velocity:'Slow',     status:'In Stock'  },
+  { sku:'HME-044', name:'Rattan Wall Basket Set',     category:'Home Goods',  units:31,  revenue:3720,  margin:49, velocity:'Slow',     status:'Overstock' },
+  { sku:'ACC-061', name:'Silk Hair Scrunchie Pack',   category:'Accessories', units:188, revenue:3384,  margin:71, velocity:'Fast',     status:'Stockout'  },
+];
+
+const SKUS_JAN = [
+  { sku:'HTG-001', name:'Heritage Canvas Tote',       category:'Accessories', units:118, revenue:8260,  margin:61, velocity:'Fast',     status:'In Stock'  },
+  { sku:'CAN-012', name:'Hand-Poured Soy Candle Set', category:'Home Goods',  units:142, revenue:12780, margin:59, velocity:'Fast',     status:'In Stock'  },
+  { sku:'APP-034', name:'Linen Button-Down Shirt',    category:'Apparel',     units:62,  revenue:6510,  margin:47, velocity:'Moderate', status:'In Stock'  },
+  { sku:'JWL-007', name:'Sterling Silver Cuff',       category:'Jewelry',     units:58,  revenue:9860,  margin:65, velocity:'Fast',     status:'In Stock'  },
+  { sku:'APP-021', name:'Merino Wool Cardigan',       category:'Apparel',     units:82,  revenue:10660, margin:46, velocity:'Fast',     status:'In Stock'  },
+  { sku:'HME-019', name:'Ceramic Serving Bowl',       category:'Home Goods',  units:71,  revenue:4970,  margin:53, velocity:'Moderate', status:'In Stock'  },
+  { sku:'ACC-088', name:'Leather Card Wallet',        category:'Accessories', units:95,  revenue:5035,  margin:59, velocity:'Fast',     status:'In Stock'  },
+  { sku:'JWL-015', name:'Brass Hoop Earrings',        category:'Jewelry',     units:54,  revenue:4320,  margin:62, velocity:'Moderate', status:'In Stock'  },
+  { sku:'APP-055', name:'Printed Midi Skirt',         category:'Apparel',     units:66,  revenue:7920,  margin:48, velocity:'Fast',     status:'In Stock'  },
+  { sku:'HME-031', name:'Beeswax Taper Candles',      category:'Home Goods',  units:189, revenue:6615,  margin:57, velocity:'Fast',     status:'In Stock'  },
+  { sku:'ACC-044', name:'Woven Crossbody Bag',        category:'Accessories', units:47,  revenue:7520,  margin:53, velocity:'Moderate', status:'In Stock'  },
+  { sku:'APP-072', name:'Cropped Denim Jacket',       category:'Apparel',     units:34,  revenue:7140,  margin:41, velocity:'Moderate', status:'In Stock'  },
+  { sku:'JWL-022', name:'Gemstone Pendant Necklace',  category:'Jewelry',     units:31,  revenue:5270,  margin:67, velocity:'Moderate', status:'In Stock'  },
+  { sku:'HME-044', name:'Rattan Wall Basket Set',     category:'Home Goods',  units:52,  revenue:6240,  margin:51, velocity:'Moderate', status:'In Stock'  },
+  { sku:'ACC-061', name:'Silk Hair Scrunchie Pack',   category:'Accessories', units:156, revenue:2808,  margin:71, velocity:'Fast',     status:'In Stock'  },
+];
+
+// Combine Jan+Feb
+const SKUS_BOTH = SKUS_FEB.map((f, i) => {
+  const j = SKUS_JAN[i];
+  return {
+    ...f,
+    units: f.units + j.units,
+    revenue: f.revenue + j.revenue,
+    margin: Math.round((f.margin + j.margin) / 2),
+    velocity: f.velocity,
+    status: f.status,
+  };
+});
+
+// Daily revenue data -- Feb (28 days)
+function genDailyRevenue(seed, base, variance) {
+  let v = base; const out = [];
+  for (let i = 0; i < 28; i++) {
+    v = Math.max(1200, Math.round(v + (Math.sin(i * seed) * variance) + (Math.random() - 0.44) * (variance * 0.6)));
+    out.push(v);
+  }
+  return out;
+}
+
+const catColors = { Apparel:'#537C6F', Accessories:'#22493D', 'Home Goods':'#8fbdb4', Jewelry:'#c4deda' };
+const categories = ['Apparel','Accessories','Home Goods','Jewelry'];
+
+// Per-category daily revenue Feb
+const dailyCatRevFeb = {
+  Apparel:      genDailyRevenue(0.7, 860, 280),
+  Accessories:  genDailyRevenue(1.1, 845, 260),
+  'Home Goods': genDailyRevenue(0.5, 803, 300),
+  Jewelry:      genDailyRevenue(1.4, 597, 200),
+};
+
+// Per-category daily margin Feb (%)
+const dailyCatMgnFeb = {
+  Apparel:      Array.from({length:28}, (_,i) => +(43 + Math.sin(i*0.7)*2.5 + (Math.random()-0.5)*1.5).toFixed(1)),
+  Accessories:  Array.from({length:28}, (_,i) => +(60 + Math.sin(i*1.1)*2   + (Math.random()-0.5)*1).toFixed(1)),
+  'Home Goods': Array.from({length:28}, (_,i) => +(53 + Math.sin(i*0.5)*2   + (Math.random()-0.5)*1.5).toFixed(1)),
+  Jewelry:      Array.from({length:28}, (_,i) => +(64 + Math.sin(i*1.4)*1.5 + (Math.random()-0.5)*1).toFixed(1)),
+};
+
+// Per-category daily revenue Jan
+const dailyCatRevJan = {
+  Apparel:      genDailyRevenue(0.9, 1040, 300),
+  Accessories:  genDailyRevenue(1.3, 750,  250),
+  'Home Goods': genDailyRevenue(0.6, 950,  320),
+  Jewelry:      Array.from({length:31}, () => Math.round(300 + Math.random()*200)),
+};
+
+// Daily labels
+const febLabels = Array.from({length:28}, (_,i) => {
+  const d = new Date(2025,1,i+1);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+});
+
+const janLabels = Array.from({length:31}, (_,i) => {
+  const d = new Date(2025,0,i+1);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+});
+
+// Aggregate daily -> weekly
+function toWeekly(arr) {
+  const weeks = []; let sum = 0;
+  arr.forEach((v,i) => { sum += v; if ((i+1)%7===0 || i===arr.length-1) { weeks.push(Math.round(sum)); sum=0; } });
+  return weeks;
+}
+
+function weeklyLabels(n) {
+  return Array.from({length:n}, (_,i) => `Week ${i+1}`);
+}
+
+// Category totals for current period
+function getCatTotals(period, metric) {
+  const data = period === 'jan' ? SKUS_JAN : SKUS_FEB;
+  const out = {};
+  categories.forEach(c => {
+    const skus = data.filter(s => s.category === c);
+    if (metric === 'revenue') {
+      out[c] = skus.reduce((a,s) => a+s.revenue, 0);
+    } else {
+      out[c] = Math.round(skus.reduce((a,s) => a+s.margin, 0) / skus.length);
+    }
+  });
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════════════
+
+let mainChart, catChart;
+
+const baseChartOpts = {
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid:{display:false}, ticks:{ font:{size:10,family:'Inter'}, color:'#6b7c78', maxRotation:0 } },
+    y: { grid:{color:'#f0f0ee'}, ticks:{ font:{size:10,family:'Inter'}, color:'#6b7c78' } }
+  }
+};
+
+function buildMainChart() {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      ...baseChartOpts,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + (ctx.dataset.label||'') + ': ' + (ctx.raw >= 1000 ? '$'+ctx.raw.toLocaleString() : ctx.raw+'%') } }
+      }
+    }
+  });
+  updateMainChart();
+}
+
+function updateMainChart() {
+  const period   = document.getElementById('sel-period').value;
+  const metric   = document.getElementById('sel-metric').value;
+  const cat      = document.getElementById('sel-cat').value;
+  const isWeekly = period === 'weekly';
+
+  // Pick source arrays (use Feb data for "daily" chart demo -- Jan data for weekly alternative)
+  const revSource = dailyCatRevFeb;
+  const mgnSource = dailyCatMgnFeb;
+  const rawLabels = febLabels;
+
+  const catsToPlot = cat === 'all' ? categories : [cat];
+  const datasets = [];
+  const colorList = ['#537C6F','#22493D','#8fbdb4','#c4deda','#e8c86a'];
+
+  catsToPlot.forEach((c, ci) => {
+    const raw = metric === 'revenue' ? revSource[c] : mgnSource[c];
+    const vals = isWeekly ? toWeekly(raw) : raw;
+    datasets.push({
+      label: c,
+      data: vals,
+      borderColor: colorList[ci] || colorList[0],
+      backgroundColor: (colorList[ci]||colorList[0]) + '18',
+      borderWidth: 2, fill: catsToPlot.length === 1,
+      tension: 0.4, pointRadius: 0, pointHoverRadius: 3,
+    });
+  });
+
+  const labels = isWeekly ? weeklyLabels(datasets[0].data.length) : rawLabels;
+  mainChart.data.labels = labels;
+  mainChart.data.datasets = datasets;
+
+  const periodLabel = isWeekly ? 'Weekly' : 'Daily';
+  const metricLabel = metric === 'revenue' ? 'Revenue' : 'Margin %';
+  const catLabel    = cat === 'all' ? 'All Categories' : cat;
+  document.getElementById('main-chart-title').textContent = `${periodLabel} ${metricLabel} -- ${catLabel}`;
+
+  if (metric === 'margin') {
+    mainChart.options.scales.y.ticks.callback = v => v + '%';
+  } else {
+    mainChart.options.scales.y.ticks.callback = v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v);
+  }
+
+  mainChart.options.plugins.legend.display = catsToPlot.length > 1;
+  if (catsToPlot.length > 1) {
+    mainChart.options.plugins.legend = {
+      display: true,
+      labels: { font:{ size:10, family:'Inter' }, boxWidth:10, color:'#333' }
+    };
+  }
+
+  mainChart.update();
+}
+
+function buildCatChart() {
+  const ctx = document.getElementById('catChart').getContext('2d');
+  catChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: categories, datasets: [{ data: [], backgroundColor: Object.values(catColors), borderWidth:2, borderColor:'#fff' }] },
+    options: {
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { display:true, position:'right', labels:{ font:{size:10,family:'Inter'}, boxWidth:10, color:'#333' } },
+        tooltip: { callbacks: { label: ctx => {
+          const metric = document.getElementById('sel-cat-metric').value;
+          return ' ' + ctx.label + ': ' + (metric==='revenue' ? '$'+ctx.raw.toLocaleString() : ctx.raw+'%');
+        }}}
+      }
+    }
+  });
+  updateCatChart();
+}
+
+function updateCatChart() {
+  const metric = document.getElementById('sel-cat-metric').value;
+  const totals = getCatTotals('feb', metric);
+  catChart.data.datasets[0].data = categories.map(c => totals[c]);
+  catChart.update();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SKU TABLE
+// ═══════════════════════════════════════════════════════════════════
+
+let sortCol = 'revenue';
+let sortDir = -1; // -1 = desc, 1 = asc
+
+function getSkuData() {
+  const p = document.getElementById('sel-sku-period').value;
+  if (p === 'jan') return [...SKUS_JAN];
+  if (p === 'both') return [...SKUS_BOTH];
+  return [...SKUS_FEB];
+}
+
+function velPill(v) {
+  const c = v === 'Fast' ? 'pg' : v === 'Moderate' ? 'py' : 'pr';
+  return `<span class="pill ${c}">${v}</span>`;
+}
+
+function statusPill(s) {
+  const c = s === 'In Stock' ? 'pg' : s === 'Stockout' ? 'pr' : 'py';
+  return `<span class="pill ${c}">${s}</span>`;
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = -1; }
+  renderSkuTable();
+}
+
+function renderSkuTable() {
+  // Update sort icons
+  ['name','category','units','revenue','margin','velocity','status'].forEach(c => {
+    const el = document.getElementById('si-' + c);
+    if (!el) return;
+    const th = el.closest('th');
+    th.classList.toggle('sorted', c === sortCol);
+    el.innerHTML = c === sortCol ? (sortDir === -1 ? '&#8595;' : '&#8593;') : '&#8597;';
+  });
+
+  let rows = getSkuData();
+  const velOrder = {Fast:0, Moderate:1, Slow:2};
+  const stOrder  = {'In Stock':0,'Low Stock':1,'Overstock':2,'Stockout':3};
+
+  rows.sort((a,b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (sortCol === 'velocity') { av = velOrder[av]??9; bv = velOrder[bv]??9; }
+    if (sortCol === 'status')   { av = stOrder[av]??9;  bv = stOrder[bv]??9; }
+    if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+    return sortDir * (bv - av);
+  });
+
+  const maxRev = Math.max(...rows.map(r => r.revenue));
+  const tbody = document.getElementById('sku-tbody');
+
+  tbody.innerHTML = rows.map(s => {
+    const pct = Math.round((s.revenue / maxRev) * 100);
+    const mColor = s.margin >= 55 ? 'var(--primary)' : s.margin >= 44 ? 'var(--warn-text)' : 'var(--danger)';
+    return `<tr>
+      <td class="td-l">
+        <div class="sku-name">${s.name}</div>
+        <div class="sku-code">${s.sku}</div>
+      </td>
+      <td class="td-l">${s.category}</td>
+      <td class="td-r">${s.units.toLocaleString()}</td>
+      <td class="td-r">
+        <div class="bar-wrap" style="justify-content:flex-end">
+          <span>$${s.revenue.toLocaleString()}</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </td>
+      <td class="td-r" style="font-weight:600;color:${mColor}">${s.margin}%</td>
+      <td class="td-l">${velPill(s.velocity)}</td>
+      <td class="td-l">${statusPill(s.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// API KEY
+// ═══════════════════════════════════════════════════════════════════
+
+document.getElementById('api-key').addEventListener('input', () => {
+  const v = document.getElementById('api-key').value.trim();
+  const el = document.getElementById('api-status');
+  if (!v) { el.className='s-empty'; el.textContent='No key entered'; }
+  else if (v.startsWith('sk-ant-')) { el.className='s-ok'; el.textContent='Key ready'; }
+  else { el.className='s-err'; el.textContent='Format unrecognized'; }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════════════════
+
+const DATA_CONTEXT = `You are a retail analytics AI assistant for a boutique retail store demo, built by Old North Analytics. You have access to the following store data. Be specific, use real numbers from the data, and answer like a sharp business analyst -- concise, direct, occasionally witty but never unprofessional. Keep responses under 180 words unless the question genuinely needs more.
+
+FEBRUARY 2025 PERFORMANCE:
+- Revenue: $84,210 (+12.4% vs January)
+- Gross Margin: 52.3% (-1.8 pts vs January)
+- Stockouts: 7 (up from 4 in January)
+- Slow-moving SKUs: 18
+
+JANUARY 2025 PERFORMANCE:
+- Revenue: $74,938
+- Gross Margin: 54.1%
+- Stockouts: 4
+- Notable: Merino Cardigan and Soy Candle Set were top performers; Silk Scrunchie Pack in stock all month
+
+FEBRUARY CATEGORY REVENUE & MARGIN:
+- Apparel: $24,040 | 44% margin
+- Accessories: $23,634 | 61% margin
+- Home Goods: $22,460 | 53% margin
+- Jewelry: $16,716 | 65% margin
+
+JANUARY CATEGORY REVENUE & MARGIN:
+- Apparel: $32,230 | 46% margin (strong month -- cardigans sold well post-holiday)
+- Accessories: $23,171 | 61% margin
+- Home Goods: $30,605 | 55% margin (candles were top seller)
+- Jewelry: $19,450 | 65% margin
+
+FEBRUARY SKU DATA:
+HTG-001 Heritage Canvas Tote | Accessories | 142 units | $9,940 | 61% | Fast | In Stock
+CAN-012 Soy Candle Set | Home Goods | 98 units | $8,820 | 58% | Fast | Low Stock
+APP-034 Linen Button-Down | Apparel | 76 units | $7,980 | 48% | Moderate | In Stock
+JWL-007 Sterling Silver Cuff | Jewelry | 44 units | $7,480 | 65% | Moderate | In Stock
+APP-021 Merino Wool Cardigan | Apparel | 55 units | $7,150 | 44% | Moderate | In Stock
+HME-019 Ceramic Serving Bowl | Home Goods | 89 units | $6,230 | 54% | Fast | In Stock
+ACC-088 Leather Card Wallet | Accessories | 110 units | $5,830 | 59% | Fast | Low Stock
+JWL-015 Brass Hoop Earrings | Jewelry | 67 units | $5,360 | 62% | Moderate | In Stock
+APP-055 Printed Midi Skirt | Apparel | 41 units | $4,920 | 46% | Slow | In Stock
+HME-031 Beeswax Taper Candles | Home Goods | 134 units | $4,690 | 56% | Fast | In Stock
+ACC-044 Woven Crossbody Bag | Accessories | 28 units | $4,480 | 52% | Slow | Overstock
+APP-072 Cropped Denim Jacket | Apparel | 19 units | $3,990 | 39% | Slow | Overstock
+JWL-022 Gemstone Pendant Necklace | Jewelry | 23 units | $3,910 | 68% | Slow | In Stock
+HME-044 Rattan Wall Basket Set | Home Goods | 31 units | $3,720 | 49% | Slow | Overstock
+ACC-061 Silk Hair Scrunchie Pack | Accessories | 188 units | $3,384 | 71% | Fast | STOCKOUT
+
+JANUARY SKU DATA:
+HTG-001 Heritage Canvas Tote | Accessories | 118 units | $8,260 | 61% | Fast | In Stock
+CAN-012 Soy Candle Set | Home Goods | 142 units | $12,780 | 59% | Fast | In Stock
+APP-034 Linen Button-Down | Apparel | 62 units | $6,510 | 47% | Moderate | In Stock
+JWL-007 Sterling Silver Cuff | Jewelry | 58 units | $9,860 | 65% | Fast | In Stock
+APP-021 Merino Wool Cardigan | Apparel | 82 units | $10,660 | 46% | Fast | In Stock
+HME-019 Ceramic Serving Bowl | Home Goods | 71 units | $4,970 | 53% | Moderate | In Stock
+ACC-088 Leather Card Wallet | Accessories | 95 units | $5,035 | 59% | Fast | In Stock
+JWL-015 Brass Hoop Earrings | Jewelry | 54 units | $4,320 | 62% | Moderate | In Stock
+APP-055 Printed Midi Skirt | Apparel | 66 units | $7,920 | 48% | Fast | In Stock
+HME-031 Beeswax Taper Candles | Home Goods | 189 units | $6,615 | 57% | Fast | In Stock
+ACC-044 Woven Crossbody Bag | Accessories | 47 units | $7,520 | 53% | Moderate | In Stock
+APP-072 Cropped Denim Jacket | Apparel | 34 units | $7,140 | 41% | Moderate | In Stock
+JWL-022 Gemstone Pendant Necklace | Jewelry | 31 units | $5,270 | 67% | Moderate | In Stock
+HME-044 Rattan Wall Basket Set | Home Goods | 52 units | $6,240 | 51% | Moderate | In Stock
+ACC-061 Silk Hair Scrunchie Pack | Accessories | 156 units | $2,808 | 71% | Fast | In Stock
+
+KEY OBSERVATIONS:
+- Apparel was much stronger in January (post-holiday cardigans); February apparel revenue dropped $8,190
+- Soy Candle Set dropped from $12,780 to $8,820 month-over-month -- likely post-holiday gift demand decline
+- Silk Scrunchie Pack stocked out in February despite being highest-margin SKU (71%)
+- Apparel overstock (APP-072, APP-055) is a February-specific issue; both sold better in January
+- Jewelry held margin well across both months at 65% blended`;
+
+let history = [];
+
+function addMsg(role, text) {
+  const c = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = `msg msg-${role}`;
+  d.textContent = text;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function addSysMsg(text) {
+  const c = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'msg msg-sys';
+  d.textContent = text;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function showTyping() {
+  const c = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.id = 'typing'; d.className = 'typing';
+  d.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+
+function removeTyping() { document.getElementById('typing')?.remove(); }
+
+function hideSuggestions() { document.getElementById('suggestions').style.display = 'none'; }
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) { addSysMsg('Enter your Anthropic API key at the top to enable AI responses.'); return; }
+
+  hideSuggestions();
+  addMsg('u', text);
+  input.value = '';
+  history.push({ role: 'user', content: text });
+
+  document.getElementById('send-btn').disabled = true;
+  showTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: DATA_CONTEXT,
+        messages: history,
+      }),
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (data.error) {
+      addSysMsg('API error: ' + (data.error.message || 'Check your API key and try again.'));
+    } else {
+      const reply = data.content[0].text;
+      addMsg('a', reply);
+      history.push({ role: 'assistant', content: reply });
+    }
+  } catch (e) {
+    removeTyping();
+    addSysMsg('Connection error. Check your key and try again.');
+  }
+
+  document.getElementById('send-btn').disabled = false;
+}
+
+function useSuggestion(btn) {
+  document.getElementById('chat-input').value = btn.textContent;
+  sendMessage();
+}
+
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+
+buildMainChart();
+buildCatChart();
+renderSkuTable();
+</script>
+</body>
+</html>
+

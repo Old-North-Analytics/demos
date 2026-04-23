@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Profitability Tracker | Old North Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --deep-forest: #22493D;
+  --sage: #537C6F;
+  --mint: #EAF6F2;
+  --accent: #A8D5C8;
+  --near-black: #1A1A1A;
+  --white: #FFFFFF;
+  --off-white: #F8FAF9;
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --border: #E2E8F0;
+  --shadow: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-hover: 0 4px 18px rgba(0,0,0,0.10);
+  --radius-sm: 6px;
+  --radius-lg: 10px;
+  --transition: 0.22s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--off-white);
+  color: var(--near-black);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--deep-forest);
+  color: var(--white);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header-left h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.3px; }
+.header-left .subtitle { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+.header-right { font-size: 12px; opacity: 0.6; }
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex;
+  gap: 0;
+  background: var(--white);
+  border-bottom: 2px solid var(--border);
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-tab {
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sage);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: var(--transition);
+  user-select: none;
+}
+.nav-tab:hover { color: var(--deep-forest); }
+.nav-tab.active {
+  color: var(--deep-forest);
+  border-bottom-color: var(--deep-forest);
+  font-weight: 600;
+}
+
+/* ── MAIN CONTENT ── */
+.main { max-width: 1280px; margin: 0 auto; padding: 24px 32px 80px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-hover); }
+
+/* ── KPI ROW ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--mint);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.kpi-label { font-size: 12px; font-weight: 600; color: var(--sage); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--deep-forest); line-height: 1.2; }
+.kpi-sub { font-size: 12px; color: var(--sage); margin-top: 4px; }
+
+/* ── MARGIN LEAK BOX ── */
+.margin-leak {
+  background: linear-gradient(135deg, #FFF7ED, #FEF3C7);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius-sm);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.margin-leak-title { font-size: 14px; font-weight: 700; color: var(--warning); margin-bottom: 6px; }
+.margin-leak-text { font-size: 14px; color: var(--near-black); }
+
+/* ── INSIGHTS BOX ── */
+.insights-box {
+  background: var(--mint);
+  border-left: 4px solid var(--deep-forest);
+  border-radius: var(--radius-sm);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.insights-title { font-size: 14px; font-weight: 700; color: var(--deep-forest); margin-bottom: 10px; }
+.insight-item { font-size: 13px; color: var(--near-black); margin-bottom: 8px; padding-left: 16px; position: relative; }
+.insight-item::before { content: ''; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--sage); }
+
+/* ── CHARTS GRID ── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.chart-card {
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.chart-card.full-width { grid-column: 1 / -1; }
+.chart-title { font-size: 14px; font-weight: 600; color: var(--deep-forest); margin-bottom: 16px; }
+.chart-container { position: relative; width: 100%; }
+.chart-container canvas { max-height: 320px; }
+
+/* ── TABLE ── */
+.table-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.table-controls select, .table-controls input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--white);
+}
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--deep-forest);
+  color: var(--white);
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+thead th:hover { background: var(--sage); }
+tbody tr { border-bottom: 1px solid var(--border); transition: var(--transition); }
+tbody tr:nth-child(even) { background: var(--mint); }
+tbody tr:hover { background: var(--accent); }
+tbody td { padding: 10px 12px; white-space: nowrap; }
+.margin-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--white);
+}
+.margin-green { background: var(--success); }
+.margin-yellow { background: var(--warning); }
+.margin-red { background: var(--danger); }
+.clickable-row { cursor: pointer; }
+
+/* ── FORMS ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.form-group { display: flex; flex-direction: column; }
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sage);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.form-group input, .form-group select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  transition: var(--transition);
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(83,124,111,0.15);
+}
+.form-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--deep-forest);
+  margin: 20px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--mint);
+  grid-column: 1 / -1;
+}
+.form-section-title:first-child { margin-top: 0; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary { background: var(--deep-forest); color: var(--white); }
+.btn-primary:hover { background: var(--sage); transform: translateY(-1px); }
+.btn-secondary { background: var(--mint); color: var(--deep-forest); }
+.btn-secondary:hover { background: var(--accent); }
+.btn-danger { background: var(--danger); color: var(--white); }
+.btn-danger:hover { opacity: 0.85; }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 60px;
+  overflow-y: auto;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: var(--shadow-hover);
+  margin-bottom: 60px;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.modal-header h2 { font-size: 18px; color: var(--deep-forest); }
+.modal-close {
+  width: 32px; height: 32px;
+  border: none; background: var(--mint);
+  border-radius: 50%; cursor: pointer;
+  font-size: 18px; color: var(--sage);
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.modal-close:hover { background: var(--accent); }
+
+/* ── SCENARIO PANEL ── */
+.scenario-panel {
+  background: var(--off-white);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  margin-top: 16px;
+}
+.scenario-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.scenario-row:last-child { border-bottom: none; }
+.scenario-header { font-weight: 700; color: var(--deep-forest); font-size: 12px; text-transform: uppercase; }
+.scenario-input {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  width: 100%;
+}
+.scenario-result { font-weight: 600; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--sage);
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--deep-forest); }
+.empty-state p { font-size: 14px; max-width: 400px; margin: 0 auto; }
+
+/* ── DETAIL PANEL ── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.detail-section { background: var(--mint); border-radius: var(--radius-sm); padding: 16px; }
+.detail-section h4 { font-size: 12px; font-weight: 700; color: var(--sage); text-transform: uppercase; margin-bottom: 10px; }
+.detail-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+.detail-row .label { color: var(--sage); }
+.detail-row .value { font-weight: 600; color: var(--near-black); }
+.detail-variance { font-size: 14px; font-weight: 700; padding: 12px; border-radius: var(--radius-sm); text-align: center; margin-top: 12px; }
+.variance-positive { background: #DCFCE7; color: var(--success); }
+.variance-negative { background: #FEE2E2; color: var(--danger); }
+
+/* ── FOOTER ── */
+.footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+  color: var(--sage);
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+.footer a { color: var(--deep-forest); text-decoration: none; font-weight: 600; }
+
+/* ── CONFIRM DIALOG ── */
+.confirm-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+.confirm-overlay.active { display: flex; }
+.confirm-box {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: var(--shadow-hover);
+}
+.confirm-box p { margin-bottom: 20px; font-size: 14px; }
+.confirm-box .btn-group { justify-content: center; margin-top: 0; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .main { padding: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .header { padding: 12px 16px; }
+  .nav-tabs { padding: 0 16px; }
+  .nav-tab { padding: 12px 16px; font-size: 13px; }
+  .scenario-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Old North Analytics</h1>
+    <div class="subtitle">Job Profitability Tracker</div>
+  </div>
+  <div class="header-right">Ironwork Fence &amp; Rail Co.</div>
+</div>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <div class="nav-tab active" data-tab="jobs" onclick="switchTab('jobs')">Jobs</div>
+  <div class="nav-tab" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="nav-tab" data-tab="insights" onclick="switchTab('insights')">Insights &amp; Scenarios</div>
+  <div class="nav-tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ═══ JOBS TAB ═══ -->
+  <div class="tab-content active" id="tab-jobs">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h2 style="font-size:20px;color:var(--deep-forest);">Job List</h2>
+      <div class="btn-group" style="margin-top:0;">
+        <button class="btn btn-primary" onclick="openJobModal()">+ Add Job</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvInput').click()">Import CSV</button>
+        <input type="file" id="csvInput" accept=".csv" style="display:none;" onchange="importCSV(event)">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-controls">
+        <select id="filterStatus" onchange="renderJobTable()">
+          <option value="">All Statuses</option>
+          <option value="Estimated">Estimated</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Complete">Complete</option>
+        </select>
+        <select id="filterType" onchange="renderJobTable()">
+          <option value="">All Job Types</option>
+          <option value="Residential">Residential</option>
+          <option value="Commercial">Commercial</option>
+          <option value="Repair/Maintenance">Repair/Maintenance</option>
+        </select>
+        <input type="text" id="filterSearch" placeholder="Search jobs..." oninput="renderJobTable()">
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortTable('name')">Job Name</th>
+              <th onclick="sortTable('customer')">Customer</th>
+              <th onclick="sortTable('type')">Type</th>
+              <th onclick="sortTable('status')">Status</th>
+              <th onclick="sortTable('quoted')">Quoted</th>
+              <th onclick="sortTable('actualCost')">Actual Cost</th>
+              <th onclick="sortTable('actualMarginPct')">Margin %</th>
+              <th onclick="sortTable('variance')">Variance</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="jobTableBody"></tbody>
+        </table>
+      </div>
+      <div id="jobEmptyState" class="empty-state" style="display:none;">
+        <div class="empty-state-icon">&#9881;</div>
+        <h3>No jobs yet</h3>
+        <p>Add your first job to start tracking profitability, or load demo data from Settings.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD TAB ═══ -->
+  <div class="tab-content" id="tab-dashboard">
+    <h2 style="font-size:20px;color:var(--deep-forest);margin-bottom:20px;">Profitability Dashboard</h2>
+
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div id="marginLeakBox" class="margin-leak" style="display:none;"></div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Estimated vs. Actual Margin by Job</div>
+        <div class="chart-container"><canvas id="chartMarginComparison"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Cost Breakdown (Completed Jobs)</div>
+        <div class="chart-container"><canvas id="chartCostBreakdown"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Margin Trend Over Time</div>
+        <div class="chart-container"><canvas id="chartMarginTrend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Cost Variance by Category</div>
+        <div class="chart-container"><canvas id="chartCostVariance"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ INSIGHTS & SCENARIOS TAB ═══ -->
+  <div class="tab-content" id="tab-insights">
+    <h2 style="font-size:20px;color:var(--deep-forest);margin-bottom:20px;">Insights &amp; Scenario Planning</h2>
+
+    <!-- Statistical Insights -->
+    <div class="card">
+      <h3 style="font-size:16px;color:var(--deep-forest);margin-bottom:16px;">Where Your Margin Goes</h3>
+      <div id="statsInsights" class="insights-box" style="border-left:none;background:transparent;padding:0;"></div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card">
+      <h3 style="font-size:16px;color:var(--deep-forest);margin-bottom:16px;">Recommendations for Next Job</h3>
+      <div id="recommendations"></div>
+    </div>
+
+    <!-- What-If Scenario Tool -->
+    <div class="card">
+      <h3 style="font-size:16px;color:var(--deep-forest);margin-bottom:8px;">What-If Scenario Tool</h3>
+      <p style="font-size:13px;color:var(--sage);margin-bottom:16px;">Adjust cost assumptions to see how they affect your average margin. Values shown are averages from completed jobs.</p>
+      <div class="scenario-panel" id="scenarioPanel"></div>
+      <div id="scenarioResult" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- Job Type Benchmarks -->
+    <div class="card">
+      <h3 style="font-size:16px;color:var(--deep-forest);margin-bottom:16px;">Performance by Job Type</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Job Type</th>
+              <th>Jobs</th>
+              <th>Avg Quoted</th>
+              <th>Avg Margin %</th>
+              <th>Avg Labor Overrun</th>
+              <th>Avg Materials Overrun</th>
+              <th>Best Margin</th>
+              <th>Worst Margin</th>
+            </tr>
+          </thead>
+          <tbody id="benchmarkBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SETTINGS TAB ═══ -->
+  <div class="tab-content" id="tab-settings">
+    <h2 style="font-size:20px;color:var(--deep-forest);margin-bottom:20px;">Settings</h2>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Company Name</label>
+          <input type="text" id="settingCompany" value="Ironwork Fence & Rail Co." onchange="saveSettings()">
+        </div>
+        <div class="form-group">
+          <label>Target Margin %</label>
+          <input type="number" id="settingTargetMargin" value="30" min="0" max="100" onchange="saveSettings()">
+        </div>
+        <div class="form-group">
+          <label>Default Labor Rate ($/hr)</label>
+          <input type="number" id="settingLaborRate" value="35" min="0" step="0.50" onchange="saveSettings()">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="loadDemoData()">Load Demo Data</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmClearAll()">Clear All Jobs</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">Built by <a href="https://oldnorthanalytics.com" target="_blank">Old North Analytics</a> &middot; oldnorthanalytics.com</div>
+
+<!-- JOB MODAL -->
+<div class="modal-overlay" id="jobModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add Job</h2>
+      <button class="modal-close" onclick="closeJobModal()">&times;</button>
+    </div>
+    <div class="form-grid" id="jobForm">
+      <div class="form-section-title">Job Details</div>
+      <div class="form-group">
+        <label>Job Name *</label>
+        <input type="text" id="fJobName" required>
+      </div>
+      <div class="form-group">
+        <label>Customer Name</label>
+        <input type="text" id="fCustomer">
+      </div>
+      <div class="form-group">
+        <label>Job Type</label>
+        <select id="fType">
+          <option>Residential</option>
+          <option>Commercial</option>
+          <option>Repair/Maintenance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="fStartDate">
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        <input type="date" id="fEndDate">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="fStatus" onchange="toggleActuals()">
+          <option>Estimated</option>
+          <option>In Progress</option>
+          <option>Complete</option>
+        </select>
+      </div>
+
+      <div class="form-section-title">Estimated Costs</div>
+      <div class="form-group">
+        <label>Quoted Price ($) *</label>
+        <input type="number" id="fQuoted" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Est. Labor Hours</label>
+        <input type="number" id="fEstLabHrs" min="0" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>Est. Labor Rate ($/hr)</label>
+        <input type="number" id="fEstLabRate" min="0" step="0.50">
+      </div>
+      <div class="form-group">
+        <label>Est. Materials ($)</label>
+        <input type="number" id="fEstMat" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Est. Subcontractor ($)</label>
+        <input type="number" id="fEstSub" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Est. Permits/Other ($)</label>
+        <input type="number" id="fEstOther" min="0" step="0.01">
+      </div>
+
+      <div class="form-section-title" id="actualsTitle">Actual Costs</div>
+      <div class="form-group actual-field">
+        <label>Actual Labor Hours</label>
+        <input type="number" id="fActLabHrs" min="0" step="0.5">
+      </div>
+      <div class="form-group actual-field">
+        <label>Actual Labor Rate ($/hr)</label>
+        <input type="number" id="fActLabRate" min="0" step="0.50">
+      </div>
+      <div class="form-group actual-field">
+        <label>Actual Materials ($)</label>
+        <input type="number" id="fActMat" min="0" step="0.01">
+      </div>
+      <div class="form-group actual-field">
+        <label>Actual Subcontractor ($)</label>
+        <input type="number" id="fActSub" min="0" step="0.01">
+      </div>
+      <div class="form-group actual-field">
+        <label>Actual Permits/Other ($)</label>
+        <input type="number" id="fActOther" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="saveJob()">Save Job</button>
+      <button class="btn btn-secondary" onclick="closeJobModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="detailTitle">Job Detail</h2>
+      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div id="detailContent"></div>
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" id="detailEditBtn">Edit Job</button>
+      <button class="btn btn-danger btn-sm" id="detailDeleteBtn">Delete Job</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <p id="confirmMsg">Are you sure?</p>
+    <div class="btn-group">
+      <button class="btn btn-danger btn-sm" id="confirmYes">Yes, Delete</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// DATA LAYER
+// ════════════════════════════════════════════
+let jobs = [];
+let settings = { company: 'Ironwork Fence & Rail Co.', targetMargin: 30, defaultLaborRate: 35 };
+let editingId = null;
+let sortCol = 'name';
+let sortDir = 1;
+let chartInstances = {};
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function loadData() {
+  try {
+    const j = localStorage.getItem('ona_jpt_jobs');
+    const s = localStorage.getItem('ona_jpt_settings');
+    if (j) jobs = JSON.parse(j);
+    if (s) settings = { ...settings, ...JSON.parse(s) };
+  } catch(e) { console.error(e); }
+  applySettings();
+}
+
+function saveData() {
+  localStorage.setItem('ona_jpt_jobs', JSON.stringify(jobs));
+}
+
+function saveSettings() {
+  settings.company = document.getElementById('settingCompany').value;
+  settings.targetMargin = parseFloat(document.getElementById('settingTargetMargin').value) || 30;
+  settings.defaultLaborRate = parseFloat(document.getElementById('settingLaborRate').value) || 35;
+  localStorage.setItem('ona_jpt_settings', JSON.stringify(settings));
+  applySettings();
+  renderAll();
+}
+
+function applySettings() {
+  document.getElementById('settingCompany').value = settings.company;
+  document.getElementById('settingTargetMargin').value = settings.targetMargin;
+  document.getElementById('settingLaborRate').value = settings.defaultLaborRate;
+  document.querySelector('.header-right').textContent = settings.company;
+}
+
+// ════════════════════════════════════════════
+// CALCULATIONS
+// ════════════════════════════════════════════
+function calcJob(j) {
+  const estLabor = (j.estLabHrs || 0) * (j.estLabRate || 0);
+  const estTotal = estLabor + (j.estMat || 0) + (j.estSub || 0) + (j.estOther || 0);
+  const estMargin = (j.quoted || 0) - estTotal;
+  const estMarginPct = j.quoted ? (estMargin / j.quoted * 100) : 0;
+
+  const actLabor = (j.actLabHrs || 0) * (j.actLabRate || 0);
+  const actTotal = actLabor + (j.actMat || 0) + (j.actSub || 0) + (j.actOther || 0);
+  const actMargin = (j.quoted || 0) - actTotal;
+  const actMarginPct = j.quoted ? (actMargin / j.quoted * 100) : 0;
+
+  const hasActuals = j.status !== 'Estimated';
+  const displayMarginPct = hasActuals ? actMarginPct : estMarginPct;
+  const displayCost = hasActuals ? actTotal : estTotal;
+  const variance = hasActuals ? (actMarginPct - estMarginPct) : 0;
+  const varianceDollar = hasActuals ? (actMargin - estMargin) : 0;
+
+  return {
+    estLabor, estTotal, estMargin, estMarginPct,
+    actLabor, actTotal, actMargin, actMarginPct,
+    displayMarginPct, displayCost, variance, varianceDollar,
+    hasActuals
+  };
+}
+
+function fmt(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtD(n) { return '$' + fmt(n); }
+function fmtP(n) { return n.toFixed(1) + '%'; }
+
+// ════════════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'insights') renderInsights();
+}
+
+// ════════════════════════════════════════════
+// JOB TABLE
+// ════════════════════════════════════════════
+function renderJobTable() {
+  const statusFilter = document.getElementById('filterStatus').value;
+  const typeFilter = document.getElementById('filterType').value;
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+
+  let filtered = jobs.filter(j => {
+    if (statusFilter && j.status !== statusFilter) return false;
+    if (typeFilter && j.type !== typeFilter) return false;
+    if (search && !j.name.toLowerCase().includes(search) && !(j.customer || '').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    const ca = calcJob(a), cb = calcJob(b);
+    let va, vb;
+    switch (sortCol) {
+      case 'name': va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
+      case 'customer': va = (a.customer || '').toLowerCase(); vb = (b.customer || '').toLowerCase(); break;
+      case 'type': va = a.type; vb = b.type; break;
+      case 'status': va = a.status; vb = b.status; break;
+      case 'quoted': va = a.quoted || 0; vb = b.quoted || 0; break;
+      case 'actualCost': va = ca.displayCost; vb = cb.displayCost; break;
+      case 'actualMarginPct': va = ca.displayMarginPct; vb = cb.displayMarginPct; break;
+      case 'variance': va = ca.variance; vb = cb.variance; break;
+      default: va = a.name; vb = b.name;
+    }
+    if (va < vb) return -1 * sortDir;
+    if (va > vb) return 1 * sortDir;
+    return 0;
+  });
+
+  const tbody = document.getElementById('jobTableBody');
+  const empty = document.getElementById('jobEmptyState');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = filtered.map(j => {
+    const c = calcJob(j);
+    const target = settings.targetMargin;
+    let badge, cls;
+    if (c.displayMarginPct >= target) { badge = 'margin-green'; }
+    else if (c.displayMarginPct >= target * 0.5) { badge = 'margin-yellow'; }
+    else { badge = 'margin-red'; }
+    return `<tr class="clickable-row" onclick="openDetailModal('${j.id}')">
+      <td><strong>${esc(j.name)}</strong></td>
+      <td>${esc(j.customer || '-')}</td>
+      <td>${j.type}</td>
+      <td>${j.status}</td>
+      <td>${fmtD(j.quoted || 0)}</td>
+      <td>${fmtD(c.displayCost)}</td>
+      <td><span class="margin-badge ${badge}">${fmtP(c.displayMarginPct)}</span></td>
+      <td style="color:${c.variance >= 0 ? 'var(--success)' : 'var(--danger)'}">${c.hasActuals ? (c.variance >= 0 ? '+' : '') + fmtP(c.variance) : '-'}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editJob('${j.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDeleteJob('${j.id}')">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+  renderJobTable();
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ════════════════════════════════════════════
+// JOB MODAL (ADD/EDIT)
+// ════════════════════════════════════════════
+function openJobModal(id) {
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Edit Job' : 'Add Job';
+  if (id) {
+    const j = jobs.find(x => x.id === id);
+    document.getElementById('fJobName').value = j.name;
+    document.getElementById('fCustomer').value = j.customer || '';
+    document.getElementById('fType').value = j.type;
+    document.getElementById('fStartDate').value = j.startDate || '';
+    document.getElementById('fEndDate').value = j.endDate || '';
+    document.getElementById('fStatus').value = j.status;
+    document.getElementById('fQuoted').value = j.quoted || '';
+    document.getElementById('fEstLabHrs').value = j.estLabHrs || '';
+    document.getElementById('fEstLabRate').value = j.estLabRate || '';
+    document.getElementById('fEstMat').value = j.estMat || '';
+    document.getElementById('fEstSub').value = j.estSub || '';
+    document.getElementById('fEstOther').value = j.estOther || '';
+    document.getElementById('fActLabHrs').value = j.actLabHrs || '';
+    document.getElementById('fActLabRate').value = j.actLabRate || '';
+    document.getElementById('fActMat').value = j.actMat || '';
+    document.getElementById('fActSub').value = j.actSub || '';
+    document.getElementById('fActOther').value = j.actOther || '';
+  } else {
+    document.getElementById('fJobName').value = '';
+    document.getElementById('fCustomer').value = '';
+    document.getElementById('fType').value = 'Residential';
+    document.getElementById('fStartDate').value = '';
+    document.getElementById('fEndDate').value = '';
+    document.getElementById('fStatus').value = 'Estimated';
+    document.getElementById('fQuoted').value = '';
+    document.getElementById('fEstLabHrs').value = '';
+    document.getElementById('fEstLabRate').value = settings.defaultLaborRate;
+    document.getElementById('fEstMat').value = '';
+    document.getElementById('fEstSub').value = '';
+    document.getElementById('fEstOther').value = '';
+    document.getElementById('fActLabHrs').value = '';
+    document.getElementById('fActLabRate').value = '';
+    document.getElementById('fActMat').value = '';
+    document.getElementById('fActSub').value = '';
+    document.getElementById('fActOther').value = '';
+  }
+  toggleActuals();
+  document.getElementById('jobModal').classList.add('active');
+}
+
+function closeJobModal() {
+  document.getElementById('jobModal').classList.remove('active');
+  editingId = null;
+}
+
+function toggleActuals() {
+  const status = document.getElementById('fStatus').value;
+  const show = status !== 'Estimated';
+  document.querySelectorAll('.actual-field').forEach(el => el.style.display = show ? '' : 'none');
+  document.getElementById('actualsTitle').style.display = show ? '' : 'none';
+}
+
+function saveJob() {
+  const name = document.getElementById('fJobName').value.trim();
+  const quoted = parseFloat(document.getElementById('fQuoted').value);
+  if (!name) { alert('Job name is required.'); return; }
+  if (!quoted || quoted <= 0) { alert('Quoted price is required and must be greater than zero.'); return; }
+
+  const startDate = document.getElementById('fStartDate').value;
+  const endDate = document.getElementById('fEndDate').value;
+  if (startDate && endDate && endDate < startDate) { alert('End date cannot be before start date.'); return; }
+
+  const job = {
+    id: editingId || uid(),
+    name,
+    customer: document.getElementById('fCustomer').value.trim(),
+    type: document.getElementById('fType').value,
+    startDate,
+    endDate,
+    status: document.getElementById('fStatus').value,
+    quoted,
+    estLabHrs: parseFloat(document.getElementById('fEstLabHrs').value) || 0,
+    estLabRate: parseFloat(document.getElementById('fEstLabRate').value) || 0,
+    estMat: parseFloat(document.getElementById('fEstMat').value) || 0,
+    estSub: parseFloat(document.getElementById('fEstSub').value) || 0,
+    estOther: parseFloat(document.getElementById('fEstOther').value) || 0,
+    actLabHrs: parseFloat(document.getElementById('fActLabHrs').value) || 0,
+    actLabRate: parseFloat(document.getElementById('fActLabRate').value) || 0,
+    actMat: parseFloat(document.getElementById('fActMat').value) || 0,
+    actSub: parseFloat(document.getElementById('fActSub').value) || 0,
+    actOther: parseFloat(document.getElementById('fActOther').value) || 0
+  };
+
+  if (editingId) {
+    const idx = jobs.findIndex(j => j.id === editingId);
+    jobs[idx] = job;
+  } else {
+    jobs.push(job);
+  }
+  saveData();
+  closeJobModal();
+  renderAll();
+}
+
+function editJob(id) { openJobModal(id); }
+
+// ════════════════════════════════════════════
+// JOB DETAIL MODAL
+// ════════════════════════════════════════════
+function openDetailModal(id) {
+  const j = jobs.find(x => x.id === id);
+  if (!j) return;
+  const c = calcJob(j);
+  document.getElementById('detailTitle').textContent = j.name;
+
+  const varianceClass = c.varianceDollar >= 0 ? 'variance-positive' : 'variance-negative';
+  const varianceText = c.hasActuals ? `${c.varianceDollar >= 0 ? '+' : ''}${fmtD(c.varianceDollar)} (${c.variance >= 0 ? '+' : ''}${fmtP(c.variance)})` : 'No actuals entered';
+
+  document.getElementById('detailContent').innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--sage);"><strong>Customer:</strong> ${esc(j.customer || 'N/A')}</span>
+      <span style="font-size:13px;color:var(--sage);"><strong>Type:</strong> ${j.type}</span>
+      <span style="font-size:13px;color:var(--sage);"><strong>Status:</strong> ${j.status}</span>
+      <span style="font-size:13px;color:var(--sage);"><strong>Dates:</strong> ${j.startDate || '?'} to ${j.endDate || '?'}</span>
+    </div>
+    <div style="font-size:22px;font-weight:700;color:var(--deep-forest);margin-bottom:16px;">Quoted: ${fmtD(j.quoted || 0)}</div>
+    <div class="detail-grid">
+      <div class="detail-section">
+        <h4>Estimated</h4>
+        <div class="detail-row"><span class="label">Labor (${j.estLabHrs}h x ${fmtD(j.estLabRate)}/h)</span><span class="value">${fmtD(c.estLabor)}</span></div>
+        <div class="detail-row"><span class="label">Materials</span><span class="value">${fmtD(j.estMat || 0)}</span></div>
+        <div class="detail-row"><span class="label">Subcontractor</span><span class="value">${fmtD(j.estSub || 0)}</span></div>
+        <div class="detail-row"><span class="label">Permits/Other</span><span class="value">${fmtD(j.estOther || 0)}</span></div>
+        <div class="detail-row" style="border-top:2px solid var(--accent);margin-top:8px;padding-top:8px;"><span class="label"><strong>Total Cost</strong></span><span class="value"><strong>${fmtD(c.estTotal)}</strong></span></div>
+        <div class="detail-row"><span class="label"><strong>Margin</strong></span><span class="value"><strong>${fmtD(c.estMargin)} (${fmtP(c.estMarginPct)})</strong></span></div>
+      </div>
+      <div class="detail-section">
+        <h4>Actual</h4>
+        ${c.hasActuals ? `
+        <div class="detail-row"><span class="label">Labor (${j.actLabHrs}h x ${fmtD(j.actLabRate)}/h)</span><span class="value">${fmtD(c.actLabor)}</span></div>
+        <div class="detail-row"><span class="label">Materials</span><span class="value">${fmtD(j.actMat || 0)}</span></div>
+        <div class="detail-row"><span class="label">Subcontractor</span><span class="value">${fmtD(j.actSub || 0)}</span></div>
+        <div class="detail-row"><span class="label">Permits/Other</span><span class="value">${fmtD(j.actOther || 0)}</span></div>
+        <div class="detail-row" style="border-top:2px solid var(--accent);margin-top:8px;padding-top:8px;"><span class="label"><strong>Total Cost</strong></span><span class="value"><strong>${fmtD(c.actTotal)}</strong></span></div>
+        <div class="detail-row"><span class="label"><strong>Margin</strong></span><span class="value"><strong>${fmtD(c.actMargin)} (${fmtP(c.actMarginPct)})</strong></span></div>
+        ` : '<p style="color:var(--sage);font-size:13px;padding:20px 0;">Actuals will appear when status is set to In Progress or Complete.</p>'}
+      </div>
+    </div>
+    <div class="detail-variance ${varianceClass}">
+      Margin Variance: ${varianceText}
+    </div>
+  `;
+
+  document.getElementById('detailEditBtn').onclick = () => { closeDetailModal(); editJob(id); };
+  document.getElementById('detailDeleteBtn').onclick = () => { closeDetailModal(); confirmDeleteJob(id); };
+  document.getElementById('detailModal').classList.add('active');
+}
+
+function closeDetailModal() { document.getElementById('detailModal').classList.remove('active'); }
+
+// ════════════════════════════════════════════
+// DELETE / CONFIRM
+// ════════════════════════════════════════════
+function confirmDeleteJob(id) {
+  const j = jobs.find(x => x.id === id);
+  document.getElementById('confirmMsg').textContent = `Delete "${j.name}"? This cannot be undone.`;
+  document.getElementById('confirmYes').onclick = () => { deleteJob(id); closeConfirm(); };
+  document.getElementById('confirmDialog').classList.add('active');
+}
+
+function confirmClearAll() {
+  document.getElementById('confirmMsg').textContent = 'Clear all jobs? This cannot be undone.';
+  document.getElementById('confirmYes').onclick = () => { jobs = []; saveData(); closeConfirm(); renderAll(); };
+  document.getElementById('confirmDialog').classList.add('active');
+}
+
+function deleteJob(id) {
+  jobs = jobs.filter(j => j.id !== id);
+  saveData();
+  renderAll();
+}
+
+function closeConfirm() { document.getElementById('confirmDialog').classList.remove('active'); }
+
+// ════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════
+function renderDashboard() {
+  const completed = jobs.filter(j => j.status === 'Complete');
+  const withActuals = jobs.filter(j => j.status !== 'Estimated');
+
+  // KPIs
+  const totalJobs = jobs.length;
+  const totalRevenue = completed.reduce((s, j) => s + (j.quoted || 0), 0);
+  const totalProfit = completed.reduce((s, j) => s + calcJob(j).actMargin, 0);
+  const avgMargin = completed.length ? completed.reduce((s, j) => s + calcJob(j).actMarginPct, 0) / completed.length : 0;
+
+  let worstJob = '-';
+  let worstMargin = Infinity;
+  completed.forEach(j => {
+    const m = calcJob(j).actMarginPct;
+    if (m < worstMargin) { worstMargin = m; worstJob = j.name; }
+  });
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Jobs</div><div class="kpi-value">${totalJobs}</div><div class="kpi-sub">${completed.length} completed</div></div>
+    <div class="kpi-card"><div class="kpi-label">Avg Actual Margin</div><div class="kpi-value">${fmtP(avgMargin)}</div><div class="kpi-sub">Target: ${settings.targetMargin}%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value">${fmtD(totalRevenue)}</div><div class="kpi-sub">Completed jobs</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Profit</div><div class="kpi-value">${fmtD(totalProfit)}</div><div class="kpi-sub">After all costs</div></div>
+    <div class="kpi-card"><div class="kpi-label">Worst Margin Job</div><div class="kpi-value" style="font-size:16px;">${esc(worstJob)}</div><div class="kpi-sub">${worstMargin !== Infinity ? fmtP(worstMargin) : '-'}</div></div>
+  `;
+
+  // Margin leak
+  const leakBox = document.getElementById('marginLeakBox');
+  const leakJobs = withActuals.filter(j => {
+    const c = calcJob(j);
+    return c.actMarginPct < c.estMarginPct;
+  });
+  const totalLeak = leakJobs.reduce((s, j) => {
+    const c = calcJob(j);
+    return s + (c.estMargin - c.actMargin);
+  }, 0);
+
+  if (leakJobs.length > 0) {
+    leakBox.style.display = 'block';
+    leakBox.innerHTML = `<div class="margin-leak-title">Margin Leak Detected</div>
+    <div class="margin-leak-text">You left <strong>${fmtD(totalLeak)}</strong> in margin on the table across <strong>${leakJobs.length} job${leakJobs.length > 1 ? 's' : ''}</strong> where actual costs exceeded your original estimates. That gap is recoverable with tighter scoping and cost tracking.</div>`;
+  } else {
+    leakBox.style.display = 'none';
+  }
+
+  // Charts
+  renderCharts(completed, withActuals);
+}
+
+function renderCharts(completed, withActuals) {
+  // Destroy existing
+  Object.values(chartInstances).forEach(c => c.destroy());
+  chartInstances = {};
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { legend: { labels: { font: { family: 'Segoe UI', size: 12 } } } },
+    scales: {}
+  };
+
+  // 1. Estimated vs Actual Margin
+  const marginData = withActuals.sort((a, b) => calcJob(a).actMarginPct - calcJob(b).actMarginPct);
+  chartInstances.margin = new Chart(document.getElementById('chartMarginComparison'), {
+    type: 'bar',
+    data: {
+      labels: marginData.map(j => j.name.length > 20 ? j.name.slice(0,18) + '..' : j.name),
+      datasets: [
+        { label: 'Estimated Margin %', data: marginData.map(j => calcJob(j).estMarginPct.toFixed(1)), backgroundColor: '#A8D5C8', borderRadius: 4 },
+        { label: 'Actual Margin %', data: marginData.map(j => calcJob(j).actMarginPct.toFixed(1)), backgroundColor: '#22493D', borderRadius: 4 }
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      plugins: { ...chartDefaults.plugins, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.x + '%' } } },
+      scales: {
+        x: { ticks: { callback: v => v + '%', font: { family: 'Segoe UI' } }, grid: { color: '#EAF6F2' } },
+        y: { ticks: { font: { family: 'Segoe UI', size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // 2. Cost Breakdown Donut
+  if (completed.length) {
+    const totLabor = completed.reduce((s, j) => s + calcJob(j).actLabor, 0);
+    const totMat = completed.reduce((s, j) => s + (j.actMat || 0), 0);
+    const totSub = completed.reduce((s, j) => s + (j.actSub || 0), 0);
+    const totOther = completed.reduce((s, j) => s + (j.actOther || 0), 0);
+    chartInstances.cost = new Chart(document.getElementById('chartCostBreakdown'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Labor', 'Materials', 'Subcontractor', 'Permits/Other'],
+        datasets: [{ data: [totLabor, totMat, totSub, totOther], backgroundColor: ['#22493D', '#537C6F', '#A8D5C8', '#EAF6F2'], borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, tooltip: { callbacks: { label: ctx => ctx.label + ': $' + fmt(ctx.parsed) } } } }
+    });
+  }
+
+  // 3. Margin Trend
+  const trendJobs = completed.filter(j => j.endDate).sort((a, b) => a.endDate.localeCompare(b.endDate));
+  if (trendJobs.length) {
+    chartInstances.trend = new Chart(document.getElementById('chartMarginTrend'), {
+      type: 'line',
+      data: {
+        labels: trendJobs.map(j => j.endDate),
+        datasets: [{
+          label: 'Actual Margin %',
+          data: trendJobs.map(j => calcJob(j).actMarginPct.toFixed(1)),
+          borderColor: '#22493D', backgroundColor: 'rgba(34,73,61,0.1)',
+          fill: true, tension: 0.3, pointRadius: 5, pointBackgroundColor: '#22493D'
+        }, {
+          label: 'Target',
+          data: trendJobs.map(() => settings.targetMargin),
+          borderColor: '#D97706', borderDash: [6, 4], pointRadius: 0, fill: false
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        scales: {
+          y: { ticks: { callback: v => v + '%', font: { family: 'Segoe UI' } }, grid: { color: '#EAF6F2' } },
+          x: { ticks: { font: { family: 'Segoe UI', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // 4. Cost Variance by Category
+  if (withActuals.length) {
+    const cats = ['Labor', 'Materials', 'Subcontractor', 'Permits/Other'];
+    const estTotals = [
+      withActuals.reduce((s, j) => s + (j.estLabHrs || 0) * (j.estLabRate || 0), 0),
+      withActuals.reduce((s, j) => s + (j.estMat || 0), 0),
+      withActuals.reduce((s, j) => s + (j.estSub || 0), 0),
+      withActuals.reduce((s, j) => s + (j.estOther || 0), 0)
+    ];
+    const actTotals = [
+      withActuals.reduce((s, j) => s + calcJob(j).actLabor, 0),
+      withActuals.reduce((s, j) => s + (j.actMat || 0), 0),
+      withActuals.reduce((s, j) => s + (j.actSub || 0), 0),
+      withActuals.reduce((s, j) => s + (j.actOther || 0), 0)
+    ];
+    const variances = estTotals.map((e, i) => actTotals[i] - e);
+
+    chartInstances.variance = new Chart(document.getElementById('chartCostVariance'), {
+      type: 'bar',
+      data: {
+        labels: cats,
+        datasets: [{
+          label: 'Cost Variance ($)',
+          data: variances.map(v => v.toFixed(2)),
+          backgroundColor: variances.map(v => v > 0 ? '#DC2626' : '#16A34A'),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        plugins: { ...chartDefaults.plugins, legend: { display: false }, tooltip: { callbacks: { label: ctx => (ctx.parsed.y >= 0 ? '+$' : '-$') + fmt(Math.abs(ctx.parsed.y)) + ' vs estimate' } } },
+        scales: {
+          y: { ticks: { callback: v => (v >= 0 ? '+$' : '-$') + fmt(Math.abs(v)), font: { family: 'Segoe UI' } }, grid: { color: '#EAF6F2' } },
+          x: { ticks: { font: { family: 'Segoe UI' } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+}
+
+// ════════════════════════════════════════════
+// INSIGHTS & SCENARIOS
+// ════════════════════════════════════════════
+function renderInsights() {
+  const completed = jobs.filter(j => j.status === 'Complete');
+  const withActuals = jobs.filter(j => j.status !== 'Estimated');
+
+  if (completed.length < 2) {
+    document.getElementById('statsInsights').innerHTML = '<p style="color:var(--sage);font-size:14px;">Complete at least 2 jobs to unlock statistical insights and recommendations.</p>';
+    document.getElementById('recommendations').innerHTML = '';
+    document.getElementById('scenarioPanel').innerHTML = '<p style="color:var(--sage);font-size:14px;">Complete at least 2 jobs to use the scenario tool.</p>';
+    document.getElementById('benchmarkBody').innerHTML = '';
+    return;
+  }
+
+  // ── Statistical analysis ──
+  const insights = [];
+  const avgEstMargin = completed.reduce((s, j) => s + calcJob(j).estMarginPct, 0) / completed.length;
+  const avgActMargin = completed.reduce((s, j) => s + calcJob(j).actMarginPct, 0) / completed.length;
+  const marginGap = avgEstMargin - avgActMargin;
+
+  if (marginGap > 0) {
+    insights.push(`Your estimates run ${fmtP(marginGap)} higher than actual results on average. Every job starts optimistic; the question is where the cost creep happens.`);
+  } else {
+    insights.push(`Your actuals are beating estimates by ${fmtP(Math.abs(marginGap))} on average. You are pricing conservatively, which could mean leaving money on the table at quote time.`);
+  }
+
+  // Labor hours analysis
+  const laborOverruns = completed.filter(j => j.actLabHrs > j.estLabHrs);
+  if (laborOverruns.length) {
+    const avgOverrun = laborOverruns.reduce((s, j) => s + (j.actLabHrs - j.estLabHrs), 0) / laborOverruns.length;
+    const avgOverrunPct = laborOverruns.reduce((s, j) => s + ((j.actLabHrs - j.estLabHrs) / j.estLabHrs * 100), 0) / laborOverruns.length;
+    insights.push(`${laborOverruns.length} of ${completed.length} completed jobs exceeded labor hour estimates by an average of ${avgOverrun.toFixed(1)} hours (${fmtP(avgOverrunPct)}). Adding a ${Math.ceil(avgOverrunPct)}% labor buffer to future estimates would close this gap.`);
+  }
+
+  // Materials analysis
+  const matOverruns = completed.filter(j => (j.actMat || 0) > (j.estMat || 0) && j.estMat > 0);
+  if (matOverruns.length) {
+    const avgMatOverPct = matOverruns.reduce((s, j) => s + ((j.actMat - j.estMat) / j.estMat * 100), 0) / matOverruns.length;
+    insights.push(`Materials came in over budget on ${matOverruns.length} job${matOverruns.length > 1 ? 's' : ''}, averaging ${fmtP(avgMatOverPct)} above estimate. Consider building a ${Math.ceil(avgMatOverPct / 5) * 5}% materials contingency into quotes.`);
+  }
+
+  // Job type comparison
+  const types = [...new Set(completed.map(j => j.type))];
+  if (types.length > 1) {
+    let best = '', bestM = -Infinity;
+    types.forEach(t => {
+      const typeJobs = completed.filter(j => j.type === t);
+      const avgM = typeJobs.reduce((s, j) => s + calcJob(j).actMarginPct, 0) / typeJobs.length;
+      if (avgM > bestM) { bestM = avgM; best = t; }
+    });
+    insights.push(`${best} jobs deliver your strongest margins at ${fmtP(bestM)} average. Prioritizing this job type is the fastest path to better overall profitability.`);
+  }
+
+  // Revenue concentration
+  const sorted = [...completed].sort((a, b) => (b.quoted || 0) - (a.quoted || 0));
+  const topJob = sorted[0];
+  const topPct = topJob ? (topJob.quoted / completed.reduce((s, j) => s + (j.quoted || 0), 0) * 100) : 0;
+  if (topPct > 35) {
+    insights.push(`"${topJob.name}" represents ${fmtP(topPct)} of your completed revenue. High concentration in a single job increases risk if that customer relationship changes.`);
+  }
+
+  document.getElementById('statsInsights').innerHTML = `<div class="insights-box">${insights.map(i => `<div class="insight-item">${i}</div>`).join('')}</div>`;
+
+  // ── Recommendations ──
+  const recs = [];
+  // Pricing recommendation
+  if (marginGap > 3) {
+    const suggestedBuffer = Math.ceil(marginGap);
+    recs.push({ title: 'Adjust your quoting buffer', text: `Your estimates consistently overshoot actual margins by about ${fmtP(marginGap)}. On your next quote, add a ${suggestedBuffer}% cost buffer before calculating your price. This protects margin without changing your rate.` });
+  }
+  if (marginGap < -2) {
+    recs.push({ title: 'Consider raising prices', text: `You are consistently outperforming estimates, which means your quotes are too conservative. Test a 5-10% price increase on your next few jobs and track whether close rates change.` });
+  }
+
+  // Labor recommendation
+  if (laborOverruns.length > completed.length * 0.5) {
+    recs.push({ title: 'Labor is your margin killer', text: `More than half your jobs exceed labor estimates. Before your next quote, review the three most recent labor overruns and identify common causes: scope creep, site conditions, crew efficiency. Then add a structured buffer based on job complexity.` });
+  }
+
+  // Optimal job size
+  const profitable = completed.filter(j => calcJob(j).actMarginPct >= settings.targetMargin);
+  if (profitable.length >= 2) {
+    const avgQuote = profitable.reduce((s, j) => s + (j.quoted || 0), 0) / profitable.length;
+    recs.push({ title: 'Your sweet spot is ' + fmtD(avgQuote) + ' jobs', text: `Jobs quoted near ${fmtD(avgQuote)} hit your target margin most consistently. When choosing between opportunities, jobs in this range carry lower risk of margin compression.` });
+  }
+
+  // Subcontractor flag
+  const subJobs = completed.filter(j => (j.actSub || 0) > 0);
+  if (subJobs.length >= 2) {
+    const subMargin = subJobs.reduce((s, j) => s + calcJob(j).actMarginPct, 0) / subJobs.length;
+    const noSubMargin = completed.filter(j => (j.actSub || 0) === 0).length ?
+      completed.filter(j => (j.actSub || 0) === 0).reduce((s, j) => s + calcJob(j).actMarginPct, 0) / completed.filter(j => (j.actSub || 0) === 0).length : 0;
+    if (subMargin < noSubMargin - 5) {
+      recs.push({ title: 'Subcontractor work drags margin', text: `Jobs with subcontractors average ${fmtP(subMargin)} margin vs. ${fmtP(noSubMargin)} without. Review whether sub markup is sufficient, or whether these jobs should be priced differently.` });
+    }
+  }
+
+  if (recs.length === 0) {
+    recs.push({ title: 'Stay the course', text: 'Your current pricing and cost management are aligned. Continue tracking actuals against estimates to catch drift early.' });
+  }
+
+  document.getElementById('recommendations').innerHTML = recs.map(r => `
+    <div style="background:var(--mint);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;color:var(--deep-forest);margin-bottom:6px;">${r.title}</div>
+      <div style="font-size:13px;color:var(--near-black);">${r.text}</div>
+    </div>
+  `).join('');
+
+  // ── Scenario Tool ──
+  const avgLabHrs = completed.reduce((s, j) => s + (j.actLabHrs || 0), 0) / completed.length;
+  const avgLabRate = completed.reduce((s, j) => s + (j.actLabRate || 0), 0) / completed.length;
+  const avgMat = completed.reduce((s, j) => s + (j.actMat || 0), 0) / completed.length;
+  const avgSub = completed.reduce((s, j) => s + (j.actSub || 0), 0) / completed.length;
+  const avgOther = completed.reduce((s, j) => s + (j.actOther || 0), 0) / completed.length;
+  const avgQuoted = completed.reduce((s, j) => s + (j.quoted || 0), 0) / completed.length;
+
+  document.getElementById('scenarioPanel').innerHTML = `
+    <div class="scenario-row scenario-header">
+      <div>Category</div><div>Current Avg</div><div>Scenario</div><div>Impact</div>
+    </div>
+    <div class="scenario-row">
+      <div>Quoted Price</div><div>${fmtD(avgQuoted)}</div>
+      <div><input class="scenario-input" type="number" id="scQuoted" value="${avgQuoted.toFixed(0)}" oninput="calcScenario()"></div>
+      <div id="scQuotedImpact" class="scenario-result">-</div>
+    </div>
+    <div class="scenario-row">
+      <div>Labor Hours</div><div>${avgLabHrs.toFixed(1)}</div>
+      <div><input class="scenario-input" type="number" id="scLabHrs" value="${avgLabHrs.toFixed(1)}" step="0.5" oninput="calcScenario()"></div>
+      <div id="scLabHrsImpact" class="scenario-result">-</div>
+    </div>
+    <div class="scenario-row">
+      <div>Labor Rate ($/hr)</div><div>${fmtD(avgLabRate)}</div>
+      <div><input class="scenario-input" type="number" id="scLabRate" value="${avgLabRate.toFixed(2)}" step="0.50" oninput="calcScenario()"></div>
+      <div id="scLabRateImpact" class="scenario-result">-</div>
+    </div>
+    <div class="scenario-row">
+      <div>Materials</div><div>${fmtD(avgMat)}</div>
+      <div><input class="scenario-input" type="number" id="scMat" value="${avgMat.toFixed(0)}" oninput="calcScenario()"></div>
+      <div id="scMatImpact" class="scenario-result">-</div>
+    </div>
+    <div class="scenario-row">
+      <div>Subcontractor</div><div>${fmtD(avgSub)}</div>
+      <div><input class="scenario-input" type="number" id="scSub" value="${avgSub.toFixed(0)}" oninput="calcScenario()"></div>
+      <div id="scSubImpact" class="scenario-result">-</div>
+    </div>
+    <div class="scenario-row">
+      <div>Permits/Other</div><div>${fmtD(avgOther)}</div>
+      <div><input class="scenario-input" type="number" id="scOther" value="${avgOther.toFixed(0)}" oninput="calcScenario()"></div>
+      <div id="scOtherImpact" class="scenario-result">-</div>
+    </div>
+  `;
+
+  window._scenarioBaseline = { avgQuoted, avgLabHrs, avgLabRate, avgMat, avgSub, avgOther };
+  calcScenario();
+
+  // ── Benchmarks ──
+  const benchBody = document.getElementById('benchmarkBody');
+  const allTypes = [...new Set(completed.map(j => j.type))];
+  benchBody.innerHTML = allTypes.map(t => {
+    const tj = completed.filter(j => j.type === t);
+    const avgQ = tj.reduce((s, j) => s + (j.quoted || 0), 0) / tj.length;
+    const avgM = tj.reduce((s, j) => s + calcJob(j).actMarginPct, 0) / tj.length;
+    const labOver = tj.filter(j => j.actLabHrs > j.estLabHrs);
+    const avgLabO = labOver.length ? labOver.reduce((s, j) => s + ((j.actLabHrs - j.estLabHrs) / j.estLabHrs * 100), 0) / labOver.length : 0;
+    const matOver = tj.filter(j => (j.actMat || 0) > (j.estMat || 0) && j.estMat > 0);
+    const avgMatO = matOver.length ? matOver.reduce((s, j) => s + ((j.actMat - j.estMat) / j.estMat * 100), 0) / matOver.length : 0;
+    const margins = tj.map(j => calcJob(j).actMarginPct);
+    const bestM = Math.max(...margins);
+    const worstM = Math.min(...margins);
+    const target = settings.targetMargin;
+    let badge;
+    if (avgM >= target) badge = 'margin-green';
+    else if (avgM >= target * 0.5) badge = 'margin-yellow';
+    else badge = 'margin-red';
+    return `<tr>
+      <td><strong>${t}</strong></td>
+      <td>${tj.length}</td>
+      <td>${fmtD(avgQ)}</td>
+      <td><span class="margin-badge ${badge}">${fmtP(avgM)}</span></td>
+      <td style="color:${avgLabO > 0 ? 'var(--danger)' : 'var(--success)'}">${avgLabO > 0 ? '+' + fmtP(avgLabO) : 'On track'}</td>
+      <td style="color:${avgMatO > 0 ? 'var(--danger)' : 'var(--success)'}">${avgMatO > 0 ? '+' + fmtP(avgMatO) : 'On track'}</td>
+      <td style="color:var(--success)">${fmtP(bestM)}</td>
+      <td style="color:var(--danger)">${fmtP(worstM)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function calcScenario() {
+  if (!window._scenarioBaseline) return;
+  const b = window._scenarioBaseline;
+
+  const scQuoted = parseFloat(document.getElementById('scQuoted').value) || b.avgQuoted;
+  const scLabHrs = parseFloat(document.getElementById('scLabHrs').value) || b.avgLabHrs;
+  const scLabRate = parseFloat(document.getElementById('scLabRate').value) || b.avgLabRate;
+  const scMat = parseFloat(document.getElementById('scMat').value) || b.avgMat;
+  const scSub = parseFloat(document.getElementById('scSub').value) || b.avgSub;
+  const scOther = parseFloat(document.getElementById('scOther').value) || b.avgOther;
+
+  const baseCost = b.avgLabHrs * b.avgLabRate + b.avgMat + b.avgSub + b.avgOther;
+  const baseMargin = b.avgQuoted > 0 ? ((b.avgQuoted - baseCost) / b.avgQuoted * 100) : 0;
+
+  const scenCost = scLabHrs * scLabRate + scMat + scSub + scOther;
+  const scenMargin = scQuoted > 0 ? ((scQuoted - scenCost) / scQuoted * 100) : 0;
+
+  const diff = scenMargin - baseMargin;
+
+  function impactLabel(val, base, invert) {
+    const d = invert ? base - val : val - base;
+    const color = (invert ? d >= 0 : d >= 0) ? 'var(--success)' : 'var(--danger)';
+    return `<span style="color:${color};">${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`;
+  }
+
+  document.getElementById('scQuotedImpact').innerHTML = impactLabel(scQuoted, b.avgQuoted, false);
+  document.getElementById('scLabHrsImpact').innerHTML = impactLabel(scLabHrs, b.avgLabHrs, true);
+  document.getElementById('scLabRateImpact').innerHTML = impactLabel(scLabRate, b.avgLabRate, true);
+  document.getElementById('scMatImpact').innerHTML = impactLabel(scMat, b.avgMat, true);
+  document.getElementById('scSubImpact').innerHTML = impactLabel(scSub, b.avgSub, true);
+  document.getElementById('scOtherImpact').innerHTML = impactLabel(scOther, b.avgOther, true);
+
+  const resultColor = scenMargin >= settings.targetMargin ? 'var(--success)' : scenMargin >= settings.targetMargin * 0.5 ? 'var(--warning)' : 'var(--danger)';
+  document.getElementById('scenarioResult').innerHTML = `
+    <div style="background:var(--white);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:20px;display:flex;justify-content:space-around;text-align:center;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--sage);text-transform:uppercase;">Current Avg Margin</div>
+        <div style="font-size:28px;font-weight:700;color:var(--deep-forest);">${fmtP(baseMargin)}</div>
+      </div>
+      <div style="font-size:28px;color:var(--sage);align-self:center;">&#8594;</div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--sage);text-transform:uppercase;">Scenario Margin</div>
+        <div style="font-size:28px;font-weight:700;color:${resultColor};">${fmtP(scenMargin)}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--sage);text-transform:uppercase;">Change</div>
+        <div style="font-size:28px;font-weight:700;color:${diff >= 0 ? 'var(--success)' : 'var(--danger)'};">${diff >= 0 ? '+' : ''}${fmtP(diff)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════
+// CSV EXPORT / IMPORT
+// ════════════════════════════════════════════
+function exportCSV() {
+  const headers = ['Job Name','Customer','Type','Status','Start Date','End Date','Quoted Price','Est Labor Hrs','Est Labor Rate','Est Materials','Est Subcontractor','Est Other','Act Labor Hrs','Act Labor Rate','Act Materials','Act Subcontractor','Act Other'];
+  const rows = jobs.map(j => [j.name,j.customer,j.type,j.status,j.startDate,j.endDate,j.quoted,j.estLabHrs,j.estLabRate,j.estMat,j.estSub,j.estOther,j.actLabHrs,j.actLabRate,j.actMat,j.actSub,j.actOther].map(v => `"${v || ''}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `job_profitability_export_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+function importCSV(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const lines = ev.target.result.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { alert('CSV file appears empty.'); return; }
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+      if (!vals || vals.length < 6) continue;
+      const clean = vals.map(v => v.replace(/^"|"$/g, '').trim());
+      jobs.push({
+        id: uid(),
+        name: clean[0] || 'Imported Job',
+        customer: clean[1] || '',
+        type: clean[2] || 'Residential',
+        status: clean[3] || 'Estimated',
+        startDate: clean[4] || '',
+        endDate: clean[5] || '',
+        quoted: parseFloat(clean[6]) || 0,
+        estLabHrs: parseFloat(clean[7]) || 0,
+        estLabRate: parseFloat(clean[8]) || 0,
+        estMat: parseFloat(clean[9]) || 0,
+        estSub: parseFloat(clean[10]) || 0,
+        estOther: parseFloat(clean[11]) || 0,
+        actLabHrs: parseFloat(clean[12]) || 0,
+        actLabRate: parseFloat(clean[13]) || 0,
+        actMat: parseFloat(clean[14]) || 0,
+        actSub: parseFloat(clean[15]) || 0,
+        actOther: parseFloat(clean[16]) || 0
+      });
+    }
+    saveData();
+    renderAll();
+    alert(`Imported ${lines.length - 1} jobs.`);
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ════════════════════════════════════════════
+// DEMO DATA
+// ════════════════════════════════════════════
+function loadDemoData() {
+  const demo = [
+    { name:'Anderson Privacy Fence', customer:'Mike Anderson', type:'Residential', status:'Complete', startDate:'2025-09-02', endDate:'2025-09-06', quoted:4800, estLabHrs:32, estLabRate:35, estMat:1200, estSub:0, estOther:75, actLabHrs:30, actLabRate:35, actMat:1150, actSub:0, actOther:75 },
+    { name:'Triangle Office Park Perimeter', customer:'Triangle Property Mgmt', type:'Commercial', status:'Complete', startDate:'2025-09-15', endDate:'2025-09-28', quoted:22500, estLabHrs:120, estLabRate:38, estMat:6800, estSub:2200, estOther:450, actLabHrs:145, actLabRate:38, actMat:7400, actSub:2200, actOther:520 },
+    { name:'Garcia Backyard Aluminum', customer:'Rosa Garcia', type:'Residential', status:'Complete', startDate:'2025-10-07', endDate:'2025-10-10', quoted:6200, estLabHrs:28, estLabRate:35, estMat:2400, estSub:0, estOther:100, actLabHrs:26, actLabRate:35, actMat:2350, actSub:0, actOther:85 },
+    { name:'Knightdale Dog Park Fencing', customer:'Town of Knightdale', type:'Commercial', status:'Complete', startDate:'2025-10-20', endDate:'2025-11-05', quoted:18000, estLabHrs:96, estLabRate:38, estMat:5200, estSub:1800, estOther:600, actLabHrs:110, actLabRate:38, actMat:5600, actSub:2100, actOther:650 },
+    { name:'Patel Pool Enclosure', customer:'Raj Patel', type:'Residential', status:'Complete', startDate:'2025-11-10', endDate:'2025-11-14', quoted:8500, estLabHrs:40, estLabRate:35, estMat:3200, estSub:0, estOther:200, actLabHrs:52, actLabRate:35, actMat:3500, actSub:0, actOther:250 },
+    { name:'Harris Gate Repair', customer:'Janet Harris', type:'Repair/Maintenance', status:'Complete', startDate:'2025-11-18', endDate:'2025-11-18', quoted:650, estLabHrs:3, estLabRate:35, estMat:120, estSub:0, estOther:0, actLabHrs:4.5, actLabRate:35, actMat:180, actSub:0, actOther:0 },
+    { name:'Brightleaf Commercial Rails', customer:'Brightleaf Square LLC', type:'Commercial', status:'Complete', startDate:'2025-12-01', endDate:'2025-12-15', quoted:14200, estLabHrs:72, estLabRate:38, estMat:4100, estSub:0, estOther:350, actLabHrs:68, actLabRate:38, actMat:3900, actSub:0, actOther:300 },
+    { name:'Thompson Cedar Privacy', customer:'Dale Thompson', type:'Residential', status:'Complete', startDate:'2026-01-06', endDate:'2026-01-10', quoted:7800, estLabHrs:36, estLabRate:35, estMat:3000, estSub:0, estOther:100, actLabHrs:34, actLabRate:35, actMat:2900, actSub:0, actOther:100 },
+    { name:'Wake Med Parking Bollards', customer:'Wake Med Health', type:'Commercial', status:'In Progress', startDate:'2026-01-20', endDate:'', quoted:9500, estLabHrs:48, estLabRate:40, estMat:3200, estSub:800, estOther:250, actLabHrs:30, actLabRate:40, actMat:2800, actSub:800, actOther:250 },
+    { name:'Dixon Chain Link Replacement', customer:'Earl Dixon', type:'Repair/Maintenance', status:'Estimated', startDate:'', endDate:'', quoted:2200, estLabHrs:12, estLabRate:35, estMat:650, estSub:0, estOther:50, actLabHrs:0, actLabRate:0, actMat:0, actSub:0, actOther:0 }
+  ];
+
+  demo.forEach(d => { d.id = uid(); jobs.push(d); });
+  saveData();
+  renderAll();
+}
+
+// ════════════════════════════════════════════
+// RENDER ALL
+// ════════════════════════════════════════════
+function renderAll() {
+  renderJobTable();
+  if (document.getElementById('tab-dashboard').classList.contains('active')) renderDashboard();
+  if (document.getElementById('tab-insights').classList.contains('active')) renderInsights();
+}
+
+// INIT
+loadData();
+renderAll();
+</script>
+</body>
+</html>

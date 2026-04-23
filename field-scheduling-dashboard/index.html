@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verdant Grounds Co. — Crew Scheduler</title>
+<style>
+:root {
+  --ona-dark:       #22493D;
+  --ona-primary:    #537C6F;
+  --ona-light:      #EAF6F2;
+  --ona-accent:     #A8D5C8;
+  --ona-white:      #FFFFFF;
+  --ona-border:     #D0E8E0;
+  --ona-text:       #1A1A1A;
+  --ona-success:    #16A34A;
+  --ona-warning:    #D97706;
+  --ona-alert:      #C0392B;
+  --ona-neutral:    #64748B;
+  --ona-font:       "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ona-radius-sm:  4px;
+  --ona-radius-md:  6px;
+  --ona-radius-lg:  10px;
+  --ona-shadow-sm:  0 1px 4px rgba(0,0,0,0.06);
+  --ona-shadow-md:  0 4px 18px rgba(0,0,0,0.10);
+  --ona-transition: 0.22s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--ona-font);
+  background: var(--ona-light);
+  color: var(--ona-text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* DEMO BANNER */
+#demo-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--ona-dark);
+  color: #fff;
+  text-align: center;
+  padding: 7px 16px;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+#demo-banner a { color: var(--ona-accent); text-decoration: none; }
+#demo-banner a:hover { text-decoration: underline; }
+
+/* APP HEADER */
+#app-header {
+  background: var(--ona-white);
+  border-bottom: 1px solid var(--ona-border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: var(--ona-shadow-sm);
+}
+
+#app-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ona-dark);
+  flex: 1;
+  min-width: 200px;
+}
+#app-title span { color: var(--ona-primary); font-weight: 400; font-size: 13px; }
+
+.header-btn {
+  padding: 7px 14px;
+  border-radius: var(--ona-radius-md);
+  border: none;
+  cursor: pointer;
+  font-family: var(--ona-font);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--ona-transition);
+}
+.header-btn:hover { transform: translateY(-2px); box-shadow: var(--ona-shadow-md); }
+.btn-primary { background: var(--ona-dark); color: #fff; }
+.btn-secondary { background: var(--ona-light); color: var(--ona-dark); border: 1px solid var(--ona-border); }
+.btn-primary:disabled { background: #ccc; color: #888; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* TABS */
+#tab-bar {
+  background: var(--ona-white);
+  border-bottom: 1px solid var(--ona-border);
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 11px 18px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--ona-font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ona-neutral);
+  border-bottom: 3px solid transparent;
+  transition: all var(--ona-transition);
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--ona-dark); }
+.tab-btn.active { color: var(--ona-dark); border-bottom-color: var(--ona-dark); }
+
+/* EXPORT TOOLBAR */
+#export-toolbar {
+  background: var(--ona-white);
+  border-bottom: 1px solid var(--ona-border);
+  padding: 8px 20px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.export-group { display: flex; gap: 6px; align-items: center; }
+.export-label { font-size: 11px; color: var(--ona-neutral); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+.export-btn {
+  padding: 5px 11px;
+  border-radius: var(--ona-radius-sm);
+  border: 1px solid var(--ona-border);
+  background: var(--ona-white);
+  color: var(--ona-dark);
+  font-family: var(--ona-font);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--ona-transition);
+}
+.export-btn:hover { background: var(--ona-light); transform: translateY(-1px); box-shadow: var(--ona-shadow-sm); }
+.export-divider { width: 1px; height: 20px; background: var(--ona-border); margin: 0 6px; }
+
+/* TAB CONTENT */
+#tab-content { padding: 20px; }
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* CARDS */
+.card {
+  background: var(--ona-white);
+  border-radius: var(--ona-radius-lg);
+  box-shadow: var(--ona-shadow-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ona-dark);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* SCHEDULE TAB */
+#schedule-pane { display: flex; flex-direction: column; gap: 16px; }
+
+#day-selector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: var(--ona-white);
+  border-radius: var(--ona-radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--ona-shadow-sm);
+}
+.day-btn {
+  padding: 7px 12px;
+  border-radius: var(--ona-radius-md);
+  border: 1px solid var(--ona-border);
+  background: var(--ona-white);
+  color: var(--ona-text);
+  font-family: var(--ona-font);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--ona-transition);
+  font-weight: 500;
+}
+.day-btn:hover { background: var(--ona-light); transform: translateY(-1px); }
+.day-btn.active { background: var(--ona-dark); color: #fff; border-color: var(--ona-dark); }
+
+#schedule-main {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* EMPLOYEE ROSTER */
+#employee-roster {
+  background: var(--ona-white);
+  border-radius: var(--ona-radius-lg);
+  box-shadow: var(--ona-shadow-sm);
+  padding: 16px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.crew-group { margin-bottom: 16px; }
+.crew-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ona-primary);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ona-border);
+}
+
+.emp-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--ona-radius-md);
+  border: 1px solid var(--ona-border);
+  background: var(--ona-light);
+  margin-bottom: 6px;
+  cursor: grab;
+  transition: all var(--ona-transition);
+  user-select: none;
+}
+.emp-chip:hover { transform: translateY(-2px); box-shadow: var(--ona-shadow-md); border-color: var(--ona-accent); }
+.emp-chip.dragging { opacity: 0.5; cursor: grabbing; }
+.emp-chip-name { font-size: 13px; font-weight: 600; color: var(--ona-dark); }
+.emp-chip-meta { font-size: 11px; color: var(--ona-neutral); }
+.emp-chip-skills { display: flex; flex-wrap: wrap; gap: 3px; }
+
+/* SKILL PILLS */
+.skill-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* SCHEDULE GRID */
+#schedule-grid {
+  background: var(--ona-white);
+  border-radius: var(--ona-radius-lg);
+  box-shadow: var(--ona-shadow-sm);
+  padding: 16px;
+  min-height: 400px;
+}
+
+.schedule-grid-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ona-dark);
+  margin-bottom: 14px;
+}
+
+.job-row {
+  border: 1px solid var(--ona-border);
+  border-radius: var(--ona-radius-md);
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: all var(--ona-transition);
+}
+.job-row:hover { box-shadow: var(--ona-shadow-sm); }
+
+.job-row-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.job-id { font-size: 11px; font-weight: 700; color: var(--ona-neutral); }
+.job-client { font-size: 13px; font-weight: 700; color: var(--ona-dark); }
+.job-meta { font-size: 12px; color: var(--ona-neutral); }
+.job-revenue { font-size: 13px; font-weight: 700; color: var(--ona-success); margin-left: auto; }
+
+.job-skills-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+
+.skill-gap-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+  margin-left: 6px;
+}
+.assigned-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #6EE7B7;
+  margin-left: 6px;
+}
+
+.drop-zone {
+  border: 2px dashed var(--ona-border);
+  border-radius: var(--ona-radius-md);
+  padding: 10px;
+  min-height: 50px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+  transition: all var(--ona-transition);
+}
+.drop-zone.drag-over { border-color: var(--ona-accent); background: #F0FBF8; }
+.drop-zone-placeholder {
+  color: var(--ona-neutral);
+  font-size: 12px;
+  width: 100%;
+  text-align: center;
+  padding: 6px;
+}
+
+.assigned-emp-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: var(--ona-dark);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.remove-emp-btn {
+  background: none;
+  border: none;
+  color: var(--ona-accent);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  transition: color var(--ona-transition);
+}
+.remove-emp-btn:hover { color: #fff; }
+
+.already-assigned-warn {
+  font-size: 11px;
+  color: var(--ona-warning);
+  font-weight: 500;
+}
+
+/* DAY SUMMARY */
+#day-summary {
+  background: var(--ona-dark);
+  color: #fff;
+  border-radius: var(--ona-radius-lg);
+  padding: 14px 20px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.summary-item { display: flex; flex-direction: column; gap: 2px; }
+.summary-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ona-accent); font-weight: 600; }
+.summary-value { font-size: 18px; font-weight: 700; }
+.summary-sub { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+/* TABLES */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table th {
+  background: var(--ona-light);
+  color: var(--ona-dark);
+  font-weight: 700;
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--ona-border);
+  white-space: nowrap;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.data-table th:hover { background: var(--ona-accent); }
+.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--ona-border); vertical-align: middle; }
+.data-table tr:hover td { background: #F7FDFC; }
+.data-table tr:last-child td { border-bottom: none; }
+
+.table-container { overflow-x: auto; border-radius: var(--ona-radius-lg); box-shadow: var(--ona-shadow-sm); }
+
+/* STATUS BADGES */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.status-unassigned { background: #FEE2E2; color: #991B1B; }
+.status-partial { background: #FEF3C7; color: #92400E; }
+.status-staffed { background: #D1FAE5; color: #065F46; }
+
+/* FILTER ROW */
+.filter-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.filter-select {
+  padding: 6px 10px;
+  border: 1px solid var(--ona-border);
+  border-radius: var(--ona-radius-md);
+  font-family: var(--ona-font);
+  font-size: 13px;
+  background: var(--ona-white);
+  color: var(--ona-text);
+}
+.filter-label { font-size: 12px; color: var(--ona-neutral); font-weight: 600; }
+
+/* KPI BAR */
+.kpi-bar {
+  display: flex;
+  gap: 0;
+  border-radius: var(--ona-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--ona-shadow-sm);
+  margin-bottom: 16px;
+}
+.kpi-item {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--ona-white);
+  border-right: 1px solid var(--ona-border);
+  min-width: 120px;
+}
+.kpi-item:last-child { border-right: none; }
+.kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ona-neutral); margin-bottom: 4px; }
+.kpi-value { font-size: 20px; font-weight: 700; color: var(--ona-dark); }
+.kpi-sub { font-size: 11px; color: var(--ona-neutral); margin-top: 2px; }
+
+/* SETTINGS */
+.settings-section { margin-bottom: 24px; }
+.settings-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ona-dark);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ona-border);
+}
+
+.skill-manager-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--ona-border);
+}
+.skill-manager-row:last-child { border-bottom: none; }
+
+.add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+.input-field {
+  padding: 7px 10px;
+  border: 1px solid var(--ona-border);
+  border-radius: var(--ona-radius-md);
+  font-family: var(--ona-font);
+  font-size: 13px;
+  flex: 1;
+  transition: border-color var(--ona-transition);
+}
+.input-field:focus { outline: none; border-color: var(--ona-primary); }
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ona-radius-sm);
+  border: 1px solid var(--ona-border);
+  background: var(--ona-white);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--ona-transition);
+}
+.icon-btn:hover { background: #FEE2E2; border-color: var(--ona-alert); }
+
+.emp-edit-table { font-size: 13px; }
+.emp-edit-table td { padding: 7px 8px; }
+.emp-edit-table input, .emp-edit-table select {
+  padding: 5px 8px;
+  border: 1px solid var(--ona-border);
+  border-radius: var(--ona-radius-sm);
+  font-family: var(--ona-font);
+  font-size: 12px;
+  width: 100%;
+}
+
+/* INSTRUCTIONS */
+.instructions-section { margin-bottom: 24px; }
+.instructions-section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ona-dark);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--ona-border);
+}
+.instructions-section p { font-size: 13px; line-height: 1.65; color: var(--ona-text); margin-bottom: 10px; }
+
+/* MODAL */
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#modal-box {
+  background: var(--ona-white);
+  border-radius: var(--ona-radius-lg);
+  padding: 32px;
+  max-width: 480px;
+  width: calc(100% - 40px);
+  box-shadow: var(--ona-shadow-md);
+}
+#modal-box h2 { font-size: 20px; font-weight: 700; color: var(--ona-dark); margin-bottom: 14px; }
+#modal-box p { font-size: 14px; line-height: 1.65; color: var(--ona-neutral); margin-bottom: 20px; }
+.modal-start-blank { display: block; text-align: center; margin-top: 12px; font-size: 12px; color: var(--ona-neutral); cursor: pointer; text-decoration: underline; }
+.modal-start-blank:hover { color: var(--ona-dark); }
+
+/* CONFIRM INLINE */
+.inline-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ona-warning);
+  font-weight: 500;
+}
+.confirm-yes { color: var(--ona-alert); font-weight: 700; cursor: pointer; text-decoration: underline; }
+.confirm-no { color: var(--ona-neutral); cursor: pointer; text-decoration: underline; }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  #schedule-main { grid-template-columns: 1fr; }
+  #employee-roster { max-height: none; }
+  .toggle-roster-btn { display: block; }
+  .kpi-item { min-width: 90px; }
+}
+
+/* PRINT */
+@media print {
+  #demo-banner, #app-header, #tab-bar, #export-toolbar, #day-selector, #day-summary,
+  #employee-roster, .filter-row, .tab-btn, .export-btn, #modal-overlay { display: none !important; }
+  body { background: #fff; }
+  .print-target { display: block !important; }
+  .print-header { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .data-table th { background: #eee !important; }
+}
+
+/* MISC */
+.no-jobs-msg { text-align: center; color: var(--ona-neutral); padding: 40px; font-size: 13px; }
+.section-divider { height: 1px; background: var(--ona-border); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- DEMO BANNER -->
+<div id="demo-banner">
+  Demo &mdash; Verdant Grounds Co. | Fictional data for portfolio purposes only | Built by Old North Analytics &mdash; <a href="https://oldnorthanalytics.com" target="_blank">oldnorthanalytics.com</a>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h2>Welcome to the Verdant Grounds Scheduler</h2>
+    <p>This tool helps you schedule landscaping crews across active jobs, track labor costs and overtime, and monitor crew coverage by skill. You can assign employees to jobs using drag-and-drop or dropdown menus, and view daily and weekly labor summaries across all 16 crew members.<br><br>This is a fictional portfolio demo built by Old North Analytics. All company names, employees, and job data are illustrative only.</p>
+    <button class="header-btn btn-primary" style="width:100%;padding:12px;" onclick="loadSampleData(); closeModal();">Load Sample Data and Get Started</button>
+    <span class="modal-start-blank" onclick="closeModal()">Start Blank</span>
+  </div>
+</div>
+
+<!-- APP HEADER -->
+<div id="app-header">
+  <div id="app-title">Verdant Grounds Co. <span>Crew Scheduler</span></div>
+  <div id="undo-confirm-area"></div>
+  <button class="header-btn btn-secondary" id="undo-btn" onclick="doUndo()" disabled>Undo</button>
+  <div id="load-confirm-area"></div>
+  <button class="header-btn btn-primary" id="load-btn" onclick="handleLoadClick()">Load Sample Data</button>
+</div>
+
+<!-- TAB BAR -->
+<div id="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('schedule',this)">Schedule</button>
+  <button class="tab-btn" onclick="switchTab('jobs',this)">Jobs</button>
+  <button class="tab-btn" onclick="switchTab('employees',this)">Employees</button>
+  <button class="tab-btn" onclick="switchTab('settings',this)">Settings</button>
+  <button class="tab-btn" onclick="switchTab('instructions',this)">Instructions</button>
+</div>
+
+<!-- EXPORT TOOLBAR -->
+<div id="export-toolbar">
+  <span class="export-label">Schedule:</span>
+  <div class="export-group">
+    <button class="export-btn" onclick="exportPDF('schedule')">PDF Schedule</button>
+    <button class="export-btn" onclick="exportCSV('schedule')">CSV Schedule</button>
+  </div>
+  <div class="export-divider"></div>
+  <span class="export-label">Employees:</span>
+  <div class="export-group">
+    <button class="export-btn" onclick="exportPDF('employees')">PDF Employees</button>
+    <button class="export-btn" onclick="exportCSV('employees')">CSV Employees</button>
+  </div>
+  <div class="export-divider"></div>
+  <span class="export-label">Jobs:</span>
+  <div class="export-group">
+    <button class="export-btn" onclick="exportPDF('jobs')">PDF Jobs</button>
+    <button class="export-btn" onclick="exportCSV('jobs')">CSV Jobs</button>
+  </div>
+</div>
+
+<!-- TAB CONTENT -->
+<div id="tab-content">
+
+  <!-- SCHEDULE TAB -->
+  <div id="pane-schedule" class="tab-pane active">
+    <div id="schedule-pane">
+      <div id="day-selector-wrap" class="card" style="padding:14px 16px;">
+        <div id="day-selector"></div>
+      </div>
+      <div id="schedule-main">
+        <div id="employee-roster">
+          <div class="card-title">Crew Roster</div>
+          <div id="roster-content"></div>
+        </div>
+        <div id="schedule-grid">
+          <div class="schedule-grid-title" id="grid-title">Jobs for Selected Day</div>
+          <div id="grid-content"></div>
+        </div>
+      </div>
+      <div id="day-summary"></div>
+    </div>
+  </div>
+
+  <!-- JOBS TAB -->
+  <div id="pane-jobs" class="tab-pane">
+    <div class="card">
+      <div class="filter-row">
+        <span class="filter-label">Filter:</span>
+        <select class="filter-select" id="filter-date" onchange="renderJobsTab()">
+          <option value="">All Dates</option>
+        </select>
+        <select class="filter-select" id="filter-type" onchange="renderJobsTab()">
+          <option value="">All Types</option>
+        </select>
+        <select class="filter-select" id="filter-status" onchange="renderJobsTab()">
+          <option value="">All Statuses</option>
+          <option value="Unassigned">Unassigned</option>
+          <option value="Partial">Partial</option>
+          <option value="Fully Staffed">Fully Staffed</option>
+        </select>
+      </div>
+      <div class="table-container">
+        <table class="data-table" id="jobs-table">
+          <thead>
+            <tr>
+              <th onclick="sortJobs('id')">Job ID</th>
+              <th onclick="sortJobs('date')">Date</th>
+              <th>Client</th>
+              <th>Address</th>
+              <th>Type</th>
+              <th>Skills Req.</th>
+              <th onclick="sortJobs('revenue')">Revenue</th>
+              <th>Assigned</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES TAB -->
+  <div id="pane-employees" class="tab-pane">
+    <div id="emp-kpi-bar" class="kpi-bar"></div>
+    <div class="table-container card" style="padding:0;overflow:hidden;">
+      <table class="data-table" id="emp-table">
+        <thead>
+          <tr>
+            <th>Name</th><th>Crew</th><th>Skills</th><th>Rate</th>
+            <th>Wk1 Hrs</th><th>Wk2 Hrs</th>
+            <th>Total Hrs</th><th>Reg Hrs</th><th>OT Hrs</th>
+            <th>Reg Pay</th><th>OT Pay</th><th>Total Pay</th>
+          </tr>
+        </thead>
+        <tbody id="emp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="pane-settings" class="tab-pane">
+    <div class="card">
+      <div class="settings-section">
+        <div class="settings-section-title">Skills Manager</div>
+        <div id="skills-list"></div>
+        <div class="add-row">
+          <input class="input-field" id="new-skill-input" placeholder="New skill name..." />
+          <button class="header-btn btn-primary" onclick="addSkill()" style="padding:7px 14px;">Add Skill</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Employee Manager</div>
+        <div class="table-container">
+          <table class="data-table emp-edit-table">
+            <thead>
+              <tr><th>Name</th><th>Crew</th><th>Skills</th><th>Rate ($/hr)</th><th>Remove</th></tr>
+            </thead>
+            <tbody id="emp-edit-tbody"></tbody>
+          </table>
+        </div>
+        <div class="add-row" style="margin-top:14px;">
+          <button class="header-btn btn-secondary" onclick="addEmployee()">+ Add Employee</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Crew Manager</div>
+        <div id="crew-manager-content"></div>
+        <div class="add-row">
+          <input class="input-field" id="new-crew-input" placeholder="New crew name (e.g. F)..." style="max-width:220px;" />
+          <button class="header-btn btn-secondary" onclick="addCrew()">Add Crew</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS TAB -->
+  <div id="pane-instructions" class="tab-pane">
+    <div class="card">
+      <div class="instructions-section">
+        <h3>How to Use This Tool</h3>
+        <p>Start by clicking "Load Sample Data" in the top-right corner. This populates all tabs with 20 jobs, 16 employees across five crews, and pre-set assignments so you have a working starting point.</p>
+        <p>On the Schedule tab, use the day buttons at the top to navigate between the 10 business days (April 7-18, 2026). Each day shows which jobs are scheduled and which employees are available.</p>
+        <p>To assign an employee to a job, drag their chip from the left panel and drop it onto the job's drop zone on the right. You can also use the day's dropdown list below each crew group as an alternative to drag-and-drop.</p>
+        <p>To remove an assignment, click the X on the employee chip within the job's drop zone. Every assignment or removal can be undone using the Undo button in the header (up to 5 steps).</p>
+        <p>Use the Settings tab to add or edit employees, manage skills, and rename crew groups. All changes reflect immediately across Schedule, Jobs, and Employees tabs.</p>
+      </div>
+      <div class="instructions-section">
+        <h3>Understanding the Outputs</h3>
+        <p><strong>Skill Gap:</strong> When employees assigned to a job do not collectively cover all required skills, a yellow "Skill gap" badge appears on that job row. Assignments are not blocked; this is a planning flag only.</p>
+        <p><strong>Overtime Calculation:</strong> Overtime is calculated per week. Any hours worked over 40 in a single calendar week are paid at 1.5x the employee's hourly rate. The Employees tab shows Week 1 and Week 2 hours separately.</p>
+        <p><strong>Labor Cost %:</strong> The day summary bar shows total labor cost for assigned employees as a percentage of total scheduled revenue for that day. Each assigned employee is assumed to work 8 hours per assigned job.</p>
+        <p><strong>Job Status:</strong> Unassigned means no employees are on the job. Partial means employees are assigned but a skill gap exists. Fully Staffed means all required skills are covered by the assigned crew.</p>
+      </div>
+      <div class="instructions-section">
+        <h3>About This Demo</h3>
+        <p>This tool was built by Old North Analytics as a portfolio demonstration. It represents the type of custom operational tool ONA builds for small businesses - owned outright, no subscriptions, no recurring fees.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #tab-content -->
+
+<script>
+// =============================================
+// SKILL COLORS
+// =============================================
+const SKILL_COLORS = {
+  'Mowing':          { bg: '#D1FAE5', color: '#065F46' },
+  'Trimming':        { bg: '#DBEAFE', color: '#1E3A8A' },
+  'Irrigation':      { bg: '#EDE9FE', color: '#4C1D95' },
+  'Design':          { bg: '#FCE7F3', color: '#831843' },
+  'Heavy Equipment': { bg: '#FEF3C7', color: '#78350F' },
+  'Pest Control':    { bg: '#FEE2E2', color: '#7F1D1D' },
+  'Planting':        { bg: '#F0FDF4', color: '#14532D' },
+};
+let skillColorIndex = 0;
+const EXTRA_COLORS = [
+  { bg: '#E0F2FE', color: '#0C4A6E' },
+  { bg: '#FDF4FF', color: '#581C87' },
+  { bg: '#FFF7ED', color: '#7C2D12' },
+];
+function getSkillColor(skill) {
+  if (!SKILL_COLORS[skill]) {
+    SKILL_COLORS[skill] = EXTRA_COLORS[skillColorIndex % EXTRA_COLORS.length];
+    skillColorIndex++;
+  }
+  return SKILL_COLORS[skill];
+}
+
+function skillPillHTML(skill) {
+  const c = getSkillColor(skill);
+  return `<span class="skill-pill" style="background:${c.bg};color:${c.color};">${skill}</span>`;
+}
+
+// =============================================
+// APP STATE
+// =============================================
+let APP_STATE = {
+  jobs: [],
+  employees: [],
+  assignments: {},
+  skills: Object.keys(SKILL_COLORS),
+  crews: ['A','B','C','D','E'],
+  activeDay: '2026-04-07',
+  activeTab: 'schedule',
+  undoStack: []
+};
+
+function cloneState() {
+  return JSON.parse(JSON.stringify({
+    jobs: APP_STATE.jobs,
+    employees: APP_STATE.employees,
+    assignments: APP_STATE.assignments,
+    skills: APP_STATE.skills,
+    crews: APP_STATE.crews,
+    activeDay: APP_STATE.activeDay,
+  }));
+}
+
+function pushUndo() {
+  APP_STATE.undoStack.push(cloneState());
+  if (APP_STATE.undoStack.length > 5) APP_STATE.undoStack.shift();
+  document.getElementById('undo-btn').disabled = false;
+}
+
+function doUndo() {
+  if (!APP_STATE.undoStack.length) return;
+  const prev = APP_STATE.undoStack.pop();
+  APP_STATE.jobs = prev.jobs;
+  APP_STATE.employees = prev.employees;
+  APP_STATE.assignments = prev.assignments;
+  APP_STATE.skills = prev.skills;
+  APP_STATE.crews = prev.crews;
+  APP_STATE.activeDay = prev.activeDay;
+  if (!APP_STATE.undoStack.length) document.getElementById('undo-btn').disabled = true;
+  renderAll();
+}
+
+// =============================================
+// SAMPLE DATA
+// =============================================
+const SAMPLE_EMPLOYEES = [
+  { id:'E01', name:'Marcus Webb',    crew:'A', skills:['Mowing','Trimming'],           rate:19 },
+  { id:'E02', name:'Deja Simmons',   crew:'A', skills:['Irrigation','Planting'],       rate:22 },
+  { id:'E03', name:'Tyler Oakes',    crew:'A', skills:['Heavy Equipment','Mowing'],    rate:24 },
+  { id:'E04', name:'Priya Nair',     crew:'B', skills:['Design','Planting'],           rate:26 },
+  { id:'E05', name:'Carlos Ruiz',    crew:'B', skills:['Mowing','Pest Control'],       rate:20 },
+  { id:'E06', name:'James Holloway', crew:'B', skills:['Trimming','Heavy Equipment'],  rate:23 },
+  { id:'E07', name:'Amber Finch',    crew:'C', skills:['Irrigation','Mowing'],         rate:21 },
+  { id:'E08', name:'Devon Parks',    crew:'C', skills:['Trimming','Planting'],         rate:19 },
+  { id:'E09', name:'Sandra Cho',     crew:'C', skills:['Pest Control','Design'],       rate:25 },
+  { id:'E10', name:'Malik Turner',   crew:'D', skills:['Heavy Equipment','Mowing'],    rate:22 },
+  { id:'E11', name:'Brittany Shaw',  crew:'D', skills:['Planting','Trimming'],         rate:20 },
+  { id:'E12', name:'Nolan Cruz',     crew:'D', skills:['Irrigation','Pest Control'],   rate:23 },
+  { id:'E13', name:'Elise Morgan',   crew:'E', skills:['Design','Planting'],           rate:27 },
+  { id:'E14', name:'Jerome Willis',  crew:'E', skills:['Mowing','Trimming'],           rate:18 },
+  { id:'E15', name:'Fatima Hassan',  crew:'E', skills:['Irrigation','Heavy Equipment'],rate:24 },
+  { id:'E16', name:'Gavin Tran',     crew:'E', skills:['Pest Control','Mowing'],       rate:21 },
+];
+
+const SAMPLE_JOBS = [
+  // April 7 (Mon)
+  { id:'J01', date:'2026-04-07', client:'The Hargrove Residence',    address:'Cary, NC',      type:'Lawn Mowing',             skills:['Mowing'],                         revenue:280 },
+  { id:'J02', date:'2026-04-07', client:'Clearwater HOA',            address:'Durham, NC',    type:'Hedge Trimming',          skills:['Trimming','Design'],               revenue:420 },
+  // April 8 (Tue)
+  { id:'J03', date:'2026-04-08', client:'Aldervale Commons',         address:'Raleigh, NC',   type:'Irrigation Repair',       skills:['Irrigation'],                      revenue:350 },
+  { id:'J04', date:'2026-04-08', client:'The Oakes Property',        address:'Apex, NC',      type:'Landscape Design Install',skills:['Design','Planting','Heavy Equipment'],revenue:1200 },
+  { id:'J05', date:'2026-04-08', client:'Ridgeline Terrace HOA',     address:'Cary, NC',      type:'Mulching',                skills:['Mowing','Planting'],               revenue:390 },
+  // April 9 (Wed)
+  { id:'J06', date:'2026-04-09', client:'Maple Hollow Estates',      address:'Morrisville, NC',type:'Tree Pruning',           skills:['Trimming','Heavy Equipment'],       revenue:540 },
+  { id:'J07', date:'2026-04-09', client:'The Finch Property',        address:'Raleigh, NC',   type:'Lawn Mowing',             skills:['Mowing'],                          revenue:240 },
+  // April 10 (Thu)
+  { id:'J08', date:'2026-04-10', client:'Brandywine Court HOA',      address:'Durham, NC',    type:'Sod Installation',        skills:['Heavy Equipment','Planting'],       revenue:1100 },
+  { id:'J09', date:'2026-04-10', client:'Greenfield Estates',        address:'Cary, NC',      type:'Pest Treatment',          skills:['Pest Control'],                     revenue:310 },
+  // April 11 (Fri)
+  { id:'J10', date:'2026-04-11', client:'The Simmons Residence',     address:'Wake Forest, NC',type:'Irrigation Repair',      skills:['Irrigation'],                       revenue:380 },
+  { id:'J11', date:'2026-04-11', client:'Northgate Commons',         address:'Raleigh, NC',   type:'Lawn Mowing',             skills:['Mowing','Trimming'],                revenue:320 },
+  { id:'J12', date:'2026-04-11', client:'Stone Creek HOA',           address:'Cary, NC',      type:'Mulching',                skills:['Mowing','Planting'],                revenue:460 },
+  // April 14 (Mon)
+  { id:'J13', date:'2026-04-14', client:'Cedar Ridge HOA',           address:'Durham, NC',    type:'Landscape Design Install',skills:['Design','Planting'],                revenue:980 },
+  { id:'J14', date:'2026-04-14', client:'The Turner Estate',         address:'Raleigh, NC',   type:'Tree Pruning',            skills:['Trimming','Heavy Equipment'],        revenue:620 },
+  // April 15 (Tue)
+  { id:'J15', date:'2026-04-15', client:'Willowbrook Residences',    address:'Apex, NC',      type:'Sod Installation',        skills:['Heavy Equipment','Planting','Mowing'],revenue:1380 },
+  { id:'J16', date:'2026-04-15', client:'The Cruz Townhomes',        address:'Raleigh, NC',   type:'Pest Treatment',          skills:['Pest Control'],                     revenue:270 },
+  // April 16 (Wed)
+  { id:'J17', date:'2026-04-16', client:'Ashwood Commons',           address:'Morrisville, NC',type:'Hedge Trimming',         skills:['Trimming'],                         revenue:300 },
+  { id:'J18', date:'2026-04-16', client:'The Morgan Property',       address:'Cary, NC',      type:'Irrigation Repair',       skills:['Irrigation','Pest Control'],         revenue:490 },
+  // April 17 (Thu)
+  { id:'J19', date:'2026-04-17', client:'Pinebrook HOA',             address:'Durham, NC',    type:'Lawn Mowing',             skills:['Mowing'],                           revenue:260 },
+  // April 18 (Fri)
+  { id:'J20', date:'2026-04-18', client:'The Willis Estate',         address:'Raleigh, NC',   type:'Landscape Design Install',skills:['Design','Planting','Irrigation'],    revenue:1400 },
+];
+
+// Pre-set assignments for roughly half the jobs
+const SAMPLE_ASSIGNMENTS = {
+  '2026-04-07_J01': ['E01','E14'],
+  '2026-04-07_J02': ['E04','E08'],
+  '2026-04-08_J03': ['E02','E07'],
+  '2026-04-08_J04': ['E04','E13','E10'],
+  '2026-04-09_J06': ['E06','E03'],
+  '2026-04-10_J08': ['E10','E11'],
+  '2026-04-10_J09': ['E09'],
+  '2026-04-11_J11': ['E01','E05'],
+  '2026-04-14_J13': ['E04','E02'],
+  '2026-04-15_J15': ['E10','E11','E03'],
+  '2026-04-16_J17': ['E06','E08'],
+  '2026-04-18_J20': ['E13','E02','E15'],
+};
+
+const BUSINESS_DAYS = [
+  '2026-04-07','2026-04-08','2026-04-09','2026-04-10','2026-04-11',
+  '2026-04-14','2026-04-15','2026-04-16','2026-04-17','2026-04-18'
+];
+
+function formatDate(d) {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dt = new Date(d + 'T00:00:00');
+  return `${days[dt.getDay()]} ${months[dt.getMonth()]} ${dt.getDate()}`;
+}
+
+function loadSampleData() {
+  pushUndo();
+  APP_STATE.employees = JSON.parse(JSON.stringify(SAMPLE_EMPLOYEES));
+  APP_STATE.jobs = JSON.parse(JSON.stringify(SAMPLE_JOBS));
+  APP_STATE.assignments = JSON.parse(JSON.stringify(SAMPLE_ASSIGNMENTS));
+  APP_STATE.skills = Object.keys(SKILL_COLORS);
+  APP_STATE.crews = ['A','B','C','D','E'];
+  APP_STATE.activeDay = '2026-04-07';
+  renderAll();
+}
+
+// =============================================
+// MODAL
+// =============================================
+function closeModal() {
+  const m = document.getElementById('modal-overlay');
+  if (m) m.style.display = 'none';
+}
+
+// =============================================
+// LOAD BUTTON with confirm
+// =============================================
+let loadConfirmActive = false;
+function handleLoadClick() {
+  if (APP_STATE.jobs.length === 0) { loadSampleData(); return; }
+  if (loadConfirmActive) return;
+  loadConfirmActive = true;
+  const area = document.getElementById('load-confirm-area');
+  area.innerHTML = `<span class="inline-confirm">Reset all changes? <span class="confirm-yes" onclick="confirmLoad()">Yes</span> / <span class="confirm-no" onclick="cancelLoad()">No</span></span>`;
+}
+function confirmLoad() {
+  loadConfirmActive = false;
+  document.getElementById('load-confirm-area').innerHTML = '';
+  loadSampleData();
+}
+function cancelLoad() {
+  loadConfirmActive = false;
+  document.getElementById('load-confirm-area').innerHTML = '';
+}
+
+// =============================================
+// TAB SWITCHING
+// =============================================
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('pane-' + tab).classList.add('active');
+  APP_STATE.activeTab = tab;
+  if (tab === 'jobs') renderJobsTab();
+  if (tab === 'employees') renderEmployeesTab();
+  if (tab === 'settings') renderSettingsTab();
+}
+
+// =============================================
+// SCHEDULE TAB
+// =============================================
+function renderScheduleTab() {
+  renderDaySelector();
+  renderRoster();
+  renderGrid();
+  renderDaySummary();
+}
+
+function renderDaySelector() {
+  const el = document.getElementById('day-selector');
+  el.innerHTML = BUSINESS_DAYS.map(d =>
+    `<button class="day-btn ${d === APP_STATE.activeDay ? 'active' : ''}" onclick="selectDay('${d}')">${formatDate(d)}</button>`
+  ).join('');
+}
+
+function selectDay(d) {
+  pushUndo();
+  APP_STATE.activeDay = d;
+  renderScheduleTab();
+}
+
+function renderRoster() {
+  const el = document.getElementById('roster-content');
+  const crews = APP_STATE.crews;
+  let html = '';
+  crews.forEach(crew => {
+    const members = APP_STATE.employees.filter(e => e.crew === crew);
+    if (!members.length) return;
+    html += `<div class="crew-group">
+      <div class="crew-label">Crew ${crew}</div>
+      ${members.map(emp => empChipHTML(emp)).join('')}
+    </div>`;
+  });
+  el.innerHTML = html || '<div class="no-jobs-msg">No employees loaded.</div>';
+  initDragSources();
+}
+
+function empChipHTML(emp) {
+  return `<div class="emp-chip" draggable="true" data-emp-id="${emp.id}" id="chip-${emp.id}">
+    <div class="emp-chip-name">${emp.name}</div>
+    <div class="emp-chip-skills">${emp.skills.map(s => skillPillHTML(s)).join('')}</div>
+    <div class="emp-chip-meta">$${emp.rate}/hr</div>
+  </div>`;
+}
+
+function initDragSources() {
+  document.querySelectorAll('.emp-chip[draggable]').forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', chip.dataset.empId);
+      chip.classList.add('dragging');
+    });
+    chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+  });
+}
+
+function renderGrid() {
+  const day = APP_STATE.activeDay;
+  const dayJobs = APP_STATE.jobs.filter(j => j.date === day);
+  const el = document.getElementById('grid-content');
+  document.getElementById('grid-title').textContent = `Jobs for ${formatDate(day)}`;
+  if (!dayJobs.length) {
+    el.innerHTML = '<div class="no-jobs-msg">No jobs scheduled for this day.</div>';
+    return;
+  }
+  el.innerHTML = dayJobs.map(job => jobRowHTML(job)).join('');
+  initDropZones();
+}
+
+function jobRowHTML(job) {
+  const key = `${job.date}_${job.id}`;
+  const assigned = APP_STATE.assignments[key] || [];
+  const assignedEmps = assigned.map(id => APP_STATE.employees.find(e => e.id === id)).filter(Boolean);
+  const coveredSkills = [...new Set(assignedEmps.flatMap(e => e.skills))];
+  const skillGap = job.skills.some(s => !coveredSkills.includes(s));
+  const statusBadge = assigned.length === 0 ? '' :
+    skillGap ? '<span class="skill-gap-badge">Skill gap</span>' :
+               '<span class="assigned-badge">Fully staffed</span>';
+  const chipsHTML = assignedEmps.map(emp =>
+    `<div class="assigned-emp-chip">
+      ${emp.name}
+      <button class="remove-emp-btn" onclick="removeAssignment('${key}','${emp.id}')">&#215;</button>
+    </div>`
+  ).join('');
+  return `<div class="job-row" data-job-key="${key}">
+    <div class="job-row-header">
+      <div>
+        <div class="job-id">${job.id}</div>
+        <div class="job-client">${job.client}</div>
+        <div class="job-meta">${job.address} &mdash; ${job.type}</div>
+      </div>
+      <div class="job-revenue">$${job.revenue.toLocaleString()}</div>
+    </div>
+    <div class="job-skills-row">
+      ${job.skills.map(s => skillPillHTML(s)).join('')}
+      ${statusBadge}
+    </div>
+    <div class="drop-zone" data-job-key="${key}">
+      ${chipsHTML || '<div class="drop-zone-placeholder">Drag employees here</div>'}
+    </div>
+  </div>`;
+}
+
+function initDropZones() {
+  document.querySelectorAll('.drop-zone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const empId = e.dataTransfer.getData('text/plain');
+      const key = zone.dataset.jobKey;
+      assignEmployee(key, empId);
+    });
+  });
+}
+
+function assignEmployee(key, empId) {
+  pushUndo();
+  if (!APP_STATE.assignments[key]) APP_STATE.assignments[key] = [];
+  if (!APP_STATE.assignments[key].includes(empId)) {
+    APP_STATE.assignments[key].push(empId);
+  }
+  renderGrid();
+  renderDaySummary();
+}
+
+function removeAssignment(key, empId) {
+  pushUndo();
+  if (APP_STATE.assignments[key]) {
+    APP_STATE.assignments[key] = APP_STATE.assignments[key].filter(id => id !== empId);
+  }
+  renderGrid();
+  renderDaySummary();
+}
+
+function renderDaySummary() {
+  const day = APP_STATE.activeDay;
+  const dayJobs = APP_STATE.jobs.filter(j => j.date === day);
+  let totalRev = 0, totalLaborCost = 0, totalHours = 0;
+  dayJobs.forEach(job => {
+    totalRev += job.revenue;
+    const key = `${day}_${job.id}`;
+    const assigned = APP_STATE.assignments[key] || [];
+    assigned.forEach(empId => {
+      const emp = APP_STATE.employees.find(e => e.id === empId);
+      if (emp) { totalLaborCost += emp.rate * 8; totalHours += 8; }
+    });
+  });
+  const pct = totalRev > 0 ? ((totalLaborCost / totalRev) * 100).toFixed(1) : '0.0';
+  document.getElementById('day-summary').innerHTML = `
+    <div class="summary-item"><div class="summary-label">Jobs</div><div class="summary-value">${dayJobs.length}</div></div>
+    <div class="summary-item"><div class="summary-label">Scheduled Revenue</div><div class="summary-value">$${totalRev.toLocaleString()}</div></div>
+    <div class="summary-item"><div class="summary-label">Labor Hours</div><div class="summary-value">${totalHours}</div></div>
+    <div class="summary-item"><div class="summary-label">Labor Cost</div><div class="summary-value">$${totalLaborCost.toLocaleString()}</div></div>
+    <div class="summary-item"><div class="summary-label">Labor % of Rev</div><div class="summary-value">${pct}%</div><div class="summary-sub">Target: under 35%</div></div>
+  `;
+}
+
+// =============================================
+// JOBS TAB
+// =============================================
+let jobsSortKey = 'date', jobsSortDir = 1;
+function sortJobs(key) {
+  if (jobsSortKey === key) jobsSortDir *= -1;
+  else { jobsSortKey = key; jobsSortDir = 1; }
+  renderJobsTab();
+}
+
+function renderJobsTab() {
+  // Populate filters if empty
+  const dateFilter = document.getElementById('filter-date');
+  const typeFilter = document.getElementById('filter-type');
+  if (dateFilter.options.length === 1) {
+    BUSINESS_DAYS.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = formatDate(d);
+      dateFilter.appendChild(o);
+    });
+  }
+  const types = [...new Set(APP_STATE.jobs.map(j => j.type))];
+  if (typeFilter.options.length === 1) {
+    types.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      typeFilter.appendChild(o);
+    });
+  }
+
+  const dateVal = dateFilter.value;
+  const typeVal = typeFilter.value;
+  const statusVal = document.getElementById('filter-status').value;
+
+  let jobs = APP_STATE.jobs.filter(j => {
+    if (dateVal && j.date !== dateVal) return false;
+    if (typeVal && j.type !== typeVal) return false;
+    return true;
+  });
+
+  // Compute status for each
+  jobs = jobs.map(j => {
+    const key = `${j.date}_${j.id}`;
+    const assigned = APP_STATE.assignments[key] || [];
+    const assignedEmps = assigned.map(id => APP_STATE.employees.find(e => e.id === id)).filter(Boolean);
+    const coveredSkills = [...new Set(assignedEmps.flatMap(e => e.skills))];
+    let status = 'Unassigned';
+    if (assigned.length > 0) status = j.skills.some(s => !coveredSkills.includes(s)) ? 'Partial' : 'Fully Staffed';
+    return { ...j, status, assignedEmps };
+  });
+
+  if (statusVal) jobs = jobs.filter(j => j.status === statusVal);
+
+  jobs.sort((a, b) => {
+    let av = a[jobsSortKey], bv = b[jobsSortKey];
+    if (typeof av === 'string') return av.localeCompare(bv) * jobsSortDir;
+    return (av - bv) * jobsSortDir;
+  });
+
+  const statusClass = { 'Unassigned': 'status-unassigned', 'Partial': 'status-partial', 'Fully Staffed': 'status-staffed' };
+  document.getElementById('jobs-tbody').innerHTML = jobs.map(j => `
+    <tr>
+      <td><strong>${j.id}</strong></td>
+      <td>${formatDate(j.date)}</td>
+      <td>${j.client}</td>
+      <td>${j.address}</td>
+      <td>${j.type}</td>
+      <td>${j.skills.map(s => skillPillHTML(s)).join(' ')}</td>
+      <td><strong>$${j.revenue.toLocaleString()}</strong></td>
+      <td>${j.assignedEmps.map(e => e.name).join(', ') || '<span style="color:var(--ona-neutral)">None</span>'}</td>
+      <td><span class="status-badge ${statusClass[j.status]}">${j.status}</span></td>
+    </tr>
+  `).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--ona-neutral);padding:24px;">No jobs match the current filters.</td></tr>';
+}
+
+// =============================================
+// EMPLOYEES TAB
+// =============================================
+function calcEmpHours(emp) {
+  // Calculate hours per week from assignments
+  const wk1 = BUSINESS_DAYS.slice(0, 5);
+  const wk2 = BUSINESS_DAYS.slice(5, 10);
+  function hoursForDays(days) {
+    let h = 0;
+    days.forEach(day => {
+      const dayJobs = APP_STATE.jobs.filter(j => j.date === day);
+      dayJobs.forEach(job => {
+        const key = `${day}_${job.id}`;
+        if ((APP_STATE.assignments[key] || []).includes(emp.id)) h += 8;
+      });
+    });
+    return h;
+  }
+  const wk1h = hoursForDays(wk1);
+  const wk2h = hoursForDays(wk2);
+  const total = wk1h + wk2h;
+  const wk1reg = Math.min(wk1h, 40), wk1ot = Math.max(0, wk1h - 40);
+  const wk2reg = Math.min(wk2h, 40), wk2ot = Math.max(0, wk2h - 40);
+  const reg = wk1reg + wk2reg, ot = wk1ot + wk2ot;
+  const regPay = reg * emp.rate;
+  const otPay = ot * emp.rate * 1.5;
+  return { wk1h, wk2h, total, reg, ot, regPay, otPay, totalPay: regPay + otPay };
+}
+
+function renderEmployeesTab() {
+  const emps = APP_STATE.employees;
+  let totalHrs = 0, totalReg = 0, totalOT = 0, totalRegPay = 0, totalOTPay = 0, totalPay = 0, totalRate = 0;
+  const rows = emps.map(emp => {
+    const h = calcEmpHours(emp);
+    totalHrs += h.total; totalReg += h.reg; totalOT += h.ot;
+    totalRegPay += h.regPay; totalOTPay += h.otPay; totalPay += h.totalPay;
+    totalRate += emp.rate;
+    return `<tr>
+      <td><strong>${emp.name}</strong></td>
+      <td>Crew ${emp.crew}</td>
+      <td>${emp.skills.map(s => skillPillHTML(s)).join(' ')}</td>
+      <td>$${emp.rate}/hr</td>
+      <td>${h.wk1h}</td><td>${h.wk2h}</td>
+      <td><strong>${h.total}</strong></td>
+      <td>${h.reg}</td>
+      <td>${h.ot > 0 ? `<span style="color:var(--ona-warning);font-weight:700;">${h.ot}</span>` : '0'}</td>
+      <td>$${h.regPay.toLocaleString()}</td>
+      <td>${h.ot > 0 ? `<span style="color:var(--ona-warning);">$${h.otPay.toLocaleString()}</span>` : '$0'}</td>
+      <td><strong>$${h.totalPay.toLocaleString()}</strong></td>
+    </tr>`;
+  });
+  document.getElementById('emp-tbody').innerHTML = rows.join('');
+
+  const avgRate = emps.length ? (totalRate / emps.length).toFixed(2) : 0;
+  document.getElementById('emp-kpi-bar').innerHTML = `
+    <div class="kpi-item"><div class="kpi-label">Headcount</div><div class="kpi-value">${emps.length}</div></div>
+    <div class="kpi-item"><div class="kpi-label">Total Hours</div><div class="kpi-value">${totalHrs}</div></div>
+    <div class="kpi-item"><div class="kpi-label">Regular Pay</div><div class="kpi-value">$${totalRegPay.toLocaleString()}</div></div>
+    <div class="kpi-item"><div class="kpi-label">OT Pay</div><div class="kpi-value" style="color:var(--ona-warning);">$${totalOTPay.toLocaleString()}</div></div>
+    <div class="kpi-item"><div class="kpi-label">Total Labor Cost</div><div class="kpi-value">$${totalPay.toLocaleString()}</div></div>
+    <div class="kpi-item"><div class="kpi-label">Avg Hourly Rate</div><div class="kpi-value">$${avgRate}</div><div class="kpi-sub">per hour</div></div>
+  `;
+}
+
+// =============================================
+// SETTINGS TAB
+// =============================================
+function renderSettingsTab() {
+  renderSkillsList();
+  renderEmpEditTable();
+  renderCrewManager();
+}
+
+function renderSkillsList() {
+  document.getElementById('skills-list').innerHTML = APP_STATE.skills.map(s => `
+    <div class="skill-manager-row">
+      ${skillPillHTML(s)}
+      <button class="icon-btn" onclick="removeSkill('${s}')" title="Remove skill">&#215;</button>
+    </div>
+  `).join('');
+}
+
+function addSkill() {
+  const input = document.getElementById('new-skill-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (APP_STATE.skills.includes(val)) { alert('Skill already exists.'); return; }
+  pushUndo();
+  APP_STATE.skills.push(val);
+  input.value = '';
+  renderSkillsList();
+}
+
+function removeSkill(skill) {
+  const inUse = APP_STATE.employees.some(e => e.skills.includes(skill));
+  if (inUse && !confirm(`"${skill}" is currently assigned to employees. Remove anyway?`)) return;
+  pushUndo();
+  APP_STATE.skills = APP_STATE.skills.filter(s => s !== skill);
+  APP_STATE.employees.forEach(e => { e.skills = e.skills.filter(s => s !== skill); });
+  renderSettingsTab();
+}
+
+function renderEmpEditTable() {
+  document.getElementById('emp-edit-tbody').innerHTML = APP_STATE.employees.map((emp, idx) => `
+    <tr data-emp-idx="${idx}">
+      <td><input class="input-field" value="${emp.name}" onchange="updateEmpField(${idx},'name',this.value)" style="min-width:120px;"/></td>
+      <td>
+        <select onchange="updateEmpField(${idx},'crew',this.value)">
+          ${APP_STATE.crews.map(c => `<option value="${c}" ${emp.crew===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          ${APP_STATE.skills.map(s => `<label style="font-size:11px;display:flex;align-items:center;gap:3px;">
+            <input type="checkbox" ${emp.skills.includes(s)?'checked':''} onchange="toggleEmpSkill(${idx},'${s}',this.checked)"> ${s}
+          </label>`).join('')}
+        </div>
+      </td>
+      <td><input type="number" class="input-field" value="${emp.rate}" onchange="updateEmpField(${idx},'rate',parseFloat(this.value))" style="width:70px;"/></td>
+      <td><button class="icon-btn" onclick="removeEmployee(${idx})">&#215;</button></td>
+    </tr>
+  `).join('');
+}
+
+function updateEmpField(idx, field, value) {
+  pushUndo();
+  APP_STATE.employees[idx][field] = value;
+}
+
+function toggleEmpSkill(idx, skill, checked) {
+  pushUndo();
+  if (checked) {
+    if (!APP_STATE.employees[idx].skills.includes(skill)) APP_STATE.employees[idx].skills.push(skill);
+  } else {
+    APP_STATE.employees[idx].skills = APP_STATE.employees[idx].skills.filter(s => s !== skill);
+  }
+}
+
+function removeEmployee(idx) {
+  if (!confirm(`Remove ${APP_STATE.employees[idx].name}?`)) return;
+  pushUndo();
+  const empId = APP_STATE.employees[idx].id;
+  APP_STATE.employees.splice(idx, 1);
+  // Remove from assignments
+  Object.keys(APP_STATE.assignments).forEach(k => {
+    APP_STATE.assignments[k] = APP_STATE.assignments[k].filter(id => id !== empId);
+  });
+  renderSettingsTab();
+  renderScheduleTab();
+}
+
+function addEmployee() {
+  pushUndo();
+  const newId = 'E' + String(APP_STATE.employees.length + 1).padStart(2,'0');
+  APP_STATE.employees.push({ id: newId, name: 'New Employee', crew: APP_STATE.crews[0] || 'A', skills: [], rate: 20 });
+  renderSettingsTab();
+}
+
+function renderCrewManager() {
+  document.getElementById('crew-manager-content').innerHTML = APP_STATE.crews.map(crew => {
+    const members = APP_STATE.employees.filter(e => e.crew === crew);
+    return `<div style="margin-bottom:12px;padding:10px;border:1px solid var(--ona-border);border-radius:var(--ona-radius-md);">
+      <div style="font-weight:700;color:var(--ona-dark);margin-bottom:6px;">Crew ${crew}</div>
+      <div style="font-size:12px;color:var(--ona-neutral);">${members.length} member(s): ${members.map(m=>m.name).join(', ') || 'None'}</div>
+      ${members.length === 0 ? `<button class="icon-btn" onclick="removeCrew('${crew}')" style="margin-top:6px;">&#215; Remove crew</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addCrew() {
+  const input = document.getElementById('new-crew-input');
+  const val = input.value.trim().toUpperCase();
+  if (!val) return;
+  if (APP_STATE.crews.includes(val)) { alert('Crew already exists.'); return; }
+  pushUndo();
+  APP_STATE.crews.push(val);
+  input.value = '';
+  renderCrewManager();
+}
+
+function removeCrew(crew) {
+  const hasMembers = APP_STATE.employees.some(e => e.crew === crew);
+  if (hasMembers) { alert('Cannot remove a crew with members assigned.'); return; }
+  pushUndo();
+  APP_STATE.crews = APP_STATE.crews.filter(c => c !== crew);
+  renderCrewManager();
+}
+
+// =============================================
+// EXPORT
+// =============================================
+function exportCSV(type) {
+  let csv = '', filename = '';
+  const d = new Date().toLocaleDateString();
+  if (type === 'schedule') {
+    const day = APP_STATE.activeDay;
+    const dayJobs = APP_STATE.jobs.filter(j => j.date === day);
+    filename = `VerdantGrounds_Schedule_${day}.csv`;
+    csv = 'Job ID,Client,Address,Type,Skills Required,Revenue,Assigned Employees\n';
+    dayJobs.forEach(j => {
+      const key = `${day}_${j.id}`;
+      const assigned = (APP_STATE.assignments[key] || []).map(id => APP_STATE.employees.find(e=>e.id===id)?.name).filter(Boolean).join('; ');
+      csv += `"${j.id}","${j.client}","${j.address}","${j.type}","${j.skills.join('; ')}","$${j.revenue}","${assigned}"\n`;
+    });
+  } else if (type === 'employees') {
+    filename = `VerdantGrounds_Employees_${d}.csv`;
+    csv = 'Name,Crew,Skills,Rate,Wk1 Hrs,Wk2 Hrs,Total Hrs,Reg Hrs,OT Hrs,Reg Pay,OT Pay,Total Pay\n';
+    APP_STATE.employees.forEach(emp => {
+      const h = calcEmpHours(emp);
+      csv += `"${emp.name}","${emp.crew}","${emp.skills.join('; ')}","$${emp.rate}",${h.wk1h},${h.wk2h},${h.total},${h.reg},${h.ot},$${h.regPay},$${h.otPay},$${h.totalPay}\n`;
+    });
+  } else if (type === 'jobs') {
+    filename = `VerdantGrounds_Jobs_${d}.csv`;
+    csv = 'Job ID,Date,Client,Address,Type,Skills,Revenue,Assigned,Status\n';
+    APP_STATE.jobs.forEach(j => {
+      const key = `${j.date}_${j.id}`;
+      const assigned = (APP_STATE.assignments[key] || []).map(id => APP_STATE.employees.find(e=>e.id===id)?.name).filter(Boolean).join('; ');
+      const emps = (APP_STATE.assignments[key]||[]).map(id=>APP_STATE.employees.find(e=>e.id===id)).filter(Boolean);
+      const covered = [...new Set(emps.flatMap(e=>e.skills))];
+      let status = assigned ? (j.skills.some(s=>!covered.includes(s)) ? 'Partial' : 'Fully Staffed') : 'Unassigned';
+      csv += `"${j.id}","${formatDate(j.date)}","${j.client}","${j.address}","${j.type}","${j.skills.join('; ')}","$${j.revenue}","${assigned}","${status}"\n`;
+    });
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPDF(type) {
+  let printContent = '';
+  const dateStr = new Date().toLocaleDateString();
+  const header = `<div style="font-family:sans-serif;margin-bottom:12px;"><strong>Verdant Grounds Co. &mdash; ${type.charAt(0).toUpperCase()+type.slice(1)}</strong><br><small>Exported ${dateStr}</small></div>`;
+
+  if (type === 'schedule') {
+    const day = APP_STATE.activeDay;
+    const dayJobs = APP_STATE.jobs.filter(j => j.date === day);
+    let rows = dayJobs.map(j => {
+      const key = `${day}_${j.id}`;
+      const assigned = (APP_STATE.assignments[key]||[]).map(id=>APP_STATE.employees.find(e=>e.id===id)?.name).filter(Boolean).join(', ');
+      return `<tr><td>${j.id}</td><td>${j.client}</td><td>${j.type}</td><td>$${j.revenue}</td><td>${assigned||'None'}</td></tr>`;
+    }).join('');
+    printContent = `${header}<table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;font-size:12px;">
+      <thead><tr><th>Job ID</th><th>Client</th><th>Type</th><th>Revenue</th><th>Assigned</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  } else if (type === 'employees') {
+    let rows = APP_STATE.employees.map(emp => {
+      const h = calcEmpHours(emp);
+      return `<tr><td>${emp.name}</td><td>${emp.crew}</td><td>$${emp.rate}</td><td>${h.total}</td><td>${h.ot}</td><td>$${h.totalPay}</td></tr>`;
+    }).join('');
+    printContent = `${header}<table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;font-size:12px;">
+      <thead><tr><th>Name</th><th>Crew</th><th>Rate</th><th>Total Hrs</th><th>OT Hrs</th><th>Total Pay</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  } else if (type === 'jobs') {
+    let rows = APP_STATE.jobs.map(j => {
+      const key = `${j.date}_${j.id}`;
+      const emps = (APP_STATE.assignments[key]||[]).map(id=>APP_STATE.employees.find(e=>e.id===id)).filter(Boolean);
+      const covered = [...new Set(emps.flatMap(e=>e.skills))];
+      let status = emps.length ? (j.skills.some(s=>!covered.includes(s))? 'Partial':'Fully Staffed'):'Unassigned';
+      return `<tr><td>${j.id}</td><td>${formatDate(j.date)}</td><td>${j.client}</td><td>${j.type}</td><td>$${j.revenue}</td><td>${status}</td></tr>`;
+    }).join('');
+    printContent = `${header}<table border="1" cellpadding="5" style="border-collapse:collapse;width:100%;font-size:12px;">
+      <thead><tr><th>Job ID</th><th>Date</th><th>Client</th><th>Type</th><th>Revenue</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Verdant Grounds Export</title>
+    <style>body{font-family:sans-serif;padding:20px;}table{border-collapse:collapse;}th,td{padding:6px 10px;border:1px solid #ccc;font-size:12px;}th{background:#eee;}</style>
+    </head><body>${printContent}</body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// =============================================
+// RENDER ALL
+// =============================================
+function renderAll() {
+  renderScheduleTab();
+  if (APP_STATE.activeTab === 'jobs') renderJobsTab();
+  if (APP_STATE.activeTab === 'employees') renderEmployeesTab();
+  if (APP_STATE.activeTab === 'settings') renderSettingsTab();
+}
+
+// Initial render (empty state)
+renderScheduleTab();
+</script>
+</body>
+</html>
